@@ -28,7 +28,10 @@ pub fn recover_after_defeat() -> Unit {
     _state.player_hp = _state.owned[_state.active].hp
     _state.owned[_state.active].cur_hp = _state.owned[_state.active].hp
   }
-  // 战斗结束后保存当前 HP
+}
+
+/// 战斗结束后将 player_hp 同步回 active 宠物的 cur_hp
+pub fn commit_battle() -> Unit {
   _state.owned[_state.active].cur_hp = _state.player_hp
 }
 
@@ -48,6 +51,25 @@ pub fn set_active(idx : Int) -> Unit {
   if idx >= 0 && idx < _state.owned.length() {
     _state.active = idx
   }
+}
+
+/// 放生宠物。保留至少 1 只，返回是否成功。
+pub fn release_pet(idx : Int) -> Bool {
+  if _state.owned.length() <= 1 { return false }
+  if idx < 0 || idx >= _state.owned.length() { return false }
+  // 从数组中移除
+  let new_owned : Array[CapturedEntry] = []
+  for i = 0; i < _state.owned.length(); i = i + 1 {
+    if i != idx { new_owned.push(_state.owned[i]) }
+  }
+  _state.owned = new_owned
+  // 调整 active
+  if idx == _state.active {
+    _state.active = 0
+  } else if idx < _state.active {
+    _state.active = _state.active - 1
+  }
+  true
 }
 
 pub fn get_active() -> Int { _state.active }

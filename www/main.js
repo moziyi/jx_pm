@@ -84,12 +84,20 @@ if (saved && saved.pets.length > 0) {
 }
 
 function syncPetsFromMoonBit() {
-  const active = exports.get_active()
   const count = exports.get_owned_count()
-  pets = []
+  // 保留已有名字/表情（add_pet 创建的名为"未知"），只更新数值
   for (let i = 0; i < count; i++) {
-    pets.push({ n: ds(exports.get_owned_name(i)), e: ds(exports.get_owned_emoji(i)), hp: exports.get_owned_hp(i), atk: exports.get_owned_atk(i), lv: exports.get_owned_lv(i), cur_hp: exports.get_owned_cur_hp(i) })
+    if (i >= pets.length) {
+      // 新捕获的宠物，从 MoonBit 读取完整信息
+      pets.push({ n: ds(exports.get_owned_name(i)), e: ds(exports.get_owned_emoji(i)), hp: exports.get_owned_hp(i), atk: exports.get_owned_atk(i), lv: exports.get_owned_lv(i), cur_hp: exports.get_owned_cur_hp(i) })
+    } else {
+      // 已有宠物，只更新可变数值
+      pets[i].hp = exports.get_owned_hp(i)
+      pets[i].atk = exports.get_owned_atk(i)
+      pets[i].cur_hp = exports.get_owned_cur_hp(i)
+    }
   }
+  pets.length = count
   savePets()
   renderPetList()
 }
@@ -120,6 +128,8 @@ window.addEventListener('resize', drawMap)
 
 // ── 7. 宠物列表 UI ─────────────────────────────────────────────────────────
 function renderPetList() {
+  const max = exports.get_max_pets ? exports.get_max_pets() : 5
+  $('max-pets').textContent = max
   const active = exports.get_active()
   caughtCount.textContent = pets.length
   if (activePetInfo) {
@@ -153,10 +163,12 @@ function showPetMenu(idx, anchor) {
   popup.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.bottom+4}px;background:#16213e;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:4px;z-index:100;min-width:120px;`
   const isActive = idx === exports.get_active()
   const p = pets[idx]
+  const onlyOne = pets.length <= 1
   popup.innerHTML = `
     <div style="padding:6px 10px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:2px;">${p.e} ${p.n} <span style="color:#888;font-size:11px;">HP:${p.cur_hp}/${p.hp} ATK:${p.atk}</span></div>
     <button class="popup-btn" data-action="rename">✏️ 改名</button>
     <button class="popup-btn" data-action="setactive" ${isActive?'disabled':''}>⚔️ ${isActive?'已是出战宠物':'设为出战'}</button>
+    <button class="popup-btn" data-action="release" style="color:#E24B4A;" ${onlyOne?'disabled':''}>🗑️ 放生</button>
   `
   popup.querySelectorAll('.popup-btn').forEach(b => {
     b.addEventListener('click', () => {
@@ -168,6 +180,11 @@ function showPetMenu(idx, anchor) {
       } else if (action === 'setactive') {
         exports.set_active(idx)
         syncPetsFromMoonBit()
+      } else if (action === 'release') {
+        if (confirm(`确定要放生 ${p.e} ${p.n} 吗？此操作不可撤销。`)) {
+          exports.release_pet(idx)
+          syncPetsFromMoonBit()
+        }
       }
     })
   })
@@ -225,12 +242,52 @@ function handleResult() {
   const won = exports.get_last_enemy_defeated()
   const lost = exports.get_last_player_defeated()
   const caught = exports.get_last_catch_success()
-  if (caught || won) { if (caught) syncPetsFromMoonBit(); syncPetsFromMoonBit(); setTimeout(exitBattle, 1500); return }
+  if (caught || won) {
+    if (caught) syncPetsFromMoonBit()
+    const max = exports.get_max_pets ? exports.get_max_pets() : 5
+    if (pets.length > max) {
+      showReleasePicker(() => { exitBattle() })
+    } else {
+      setTimeout(exitBattle, 1500)
+    }
+    return
+  }
   if (lost) { setTimeout(() => { exports.recover_after_defeat(); syncBattleUI(); exitBattle() }, 1600); return }
   setButtons(true)
 }
 
+function showReleasePicker(onDone) {
+  const max = exports.get_max_pets ? exports.get_max_pets() : 5
+  setLog(`队伍已满（${pets.length}/${max}），请选择一只放生的宠物：`)
+  setButtons(false)
+  // 显示选择面板
+  const panel = document.createElement('div')
+  panel.id = 'release-picker'
+  panel.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;padding:8px 12px;border-bottom:0.5px solid var(--border);'
+  panel.innerHTML = pets.map((p, i) => `
+    <button class="switch-pet-btn release-option" data-idx="${i}">
+      ${p.e} ${p.n} <span style="font-size:10px;color:var(--muted)">HP:${p.cur_hp}/${p.hp} ATK:${p.atk}</span>
+    </button>
+  `).join('')
+  const actions = document.querySelector('.battle-actions')
+  actions.parentNode.insertBefore(panel, actions)
+  // 绑定点击
+  panel.querySelectorAll('.release-option').forEach(b => {
+    b.addEventListener('click', () => {
+      const idx = parseInt(b.dataset.idx)
+      exports.release_pet(idx)
+      syncPetsFromMoonBit()
+      panel.remove()
+      setButtons(true)
+      onDone()
+    })
+  })
+}
+
 function exitBattle() {
+  const rp = document.getElementById('release-picker')
+  if (rp) rp.remove()
+  exports.commit_battle()
   syncPetsFromMoonBit()
   petSwitchPanel.hidden = true
   battleView.hidden = true; mapView.hidden = false

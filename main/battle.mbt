@@ -56,10 +56,14 @@ pub fn player_attack() -> Unit {
     }
 }
 
+let max_pets : Int = 5
+
+pub fn get_max_pets() -> Int { max_pets }
+
 pub fn try_catch() -> Unit {
   let rate    = calc_catch_rate()
-  let success = math_random() < rate
   let pct     = (rate * 100.0).to_int()
+  let success = math_random() < rate
 
   if success {
     let hp = roll_stat(_state.enemy_max_hp)
