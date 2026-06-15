@@ -1,6 +1,6 @@
 // state.mbt — 数据结构、全局状态、地点配置
 
-// JS 互操作：从宿主环境导入 math_random
+// JS 互操作
 fn math_random() -> Double = "env" "math_random"
 
 // 地点配置
@@ -11,13 +11,17 @@ priv struct LocationConfig {
   atk   : Int
 }
 
-// 已捕捉生物
+// 已拥有宠物
 priv struct CapturedEntry {
   name  : String
   emoji : String
+  hp    : Int   // max HP
+  atk   : Int
+  lv    : Int
+  mut cur_hp : Int
 }
 
-// 最后一次行动的结果（全局存储，供 JS 用 getter 读取）
+// 行动结果
 priv struct LastResult {
   mut message         : String
   mut damage_dealt    : Int
@@ -28,28 +32,42 @@ priv struct LastResult {
   mut enemy_defeated  : Bool
 }
 
-// 游戏状态（全局单例）
+// 游戏状态
 priv struct GameState {
   mut player_hp      : Int
   mut player_max_hp  : Int
+  mut player_atk      : Int
   mut enemy_hp       : Int
   mut enemy_max_hp   : Int
   mut enemy_atk      : Int
   mut enemy_name     : String
   mut enemy_emoji    : String
-  mut captured       : Array[CapturedEntry]
+  mut owned          : Array[CapturedEntry]
+  mut active         : Int
+}
+
+// 初始宠物
+let _starter : CapturedEntry = {
+  name:   "小幽",
+  emoji:  "🧚",
+  hp:     35,
+  atk:    8,
+  lv:     1,
+  cur_hp: 35,
 }
 
 // 全局实例
 let _state : GameState = {
-  player_hp:     50,
-  player_max_hp: 50,
+  player_hp:     _starter.cur_hp,
+  player_max_hp: _starter.hp,
+  player_atk:     _starter.atk,
   enemy_hp:      0,
   enemy_max_hp:  0,
   enemy_atk:     0,
   enemy_name:    "",
   enemy_emoji:   "",
-  captured:      [],
+  owned:         [_starter],
+  active:        0,
 }
 
 let _result : LastResult = {

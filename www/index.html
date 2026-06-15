@@ -15,7 +15,7 @@
     <div class="hud">
       <div class="hud-title">🗺 幻兽森林</div>
       <div class="hud-right">
-        已捕捉：<span id="caught-count">0</span> 只
+        出战：<span id="active-pet">🧚 小幽</span> | 已捕捉：<span id="caught-count">1</span> 只
       </div>
     </div>
 
@@ -55,12 +55,12 @@
   <div id="battle-view" hidden>
     <div class="battle-scene">
       <div class="entity">
-        <div class="avatar">🧙</div>
-        <div class="entity-name">探险者</div>
+        <div class="avatar" id="player-avatar">🧙</div>
+        <div class="entity-name" id="player-name">小幽</div>
         <div class="hp-wrap">
           <div class="hp-label">
             <span>HP</span>
-            <span id="player-hp-text">50/50</span>
+            <span id="player-hp-text">35/35</span>
           </div>
           <div class="hp-track">
             <div id="player-hp-bar" class="hp-fill green" style="width:100%"></div>
@@ -86,6 +86,8 @@
     </div>
 
     <div id="battle-log" class="battle-log">战斗开始！</div>
+
+    <div id="pet-switch" class="pet-switch" hidden></div>
 
     <div class="battle-actions">
       <button id="btn-attack" class="action-btn">

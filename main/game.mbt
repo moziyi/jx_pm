@@ -1,15 +1,13 @@
-// game.mbt — 游戏初始化与状态查询
-
-// 注意：数据结构（_state, _result, get_location 等）定义在 state.mbt
-//        战斗逻辑（player_attack, try_catch, run_away）定义在 battle.mbt
-//        MoonBit 同包内所有文件共享命名空间
+// game.mbt — 初始化、存档、状态查询
 
 // ── 初始化 ────────────────────────────────────────────────────────────────
 
 pub fn new_game() -> Unit {
-  _state.player_hp     = 50
-  _state.player_max_hp = 50
-  _state.captured      = []
+  _state.player_hp     = _starter.cur_hp
+  _state.player_max_hp = _starter.hp
+  _state.player_atk     = _starter.atk
+  _state.owned         = [_starter]
+  _state.active        = 0
 }
 
 pub fn start_battle(location_id : Int) -> Unit {
@@ -19,27 +17,77 @@ pub fn start_battle(location_id : Int) -> Unit {
   _state.enemy_hp     = cfg.hp
   _state.enemy_max_hp = cfg.hp
   _state.enemy_atk    = cfg.atk
+  let pet = _state.owned[_state.active]
+  _state.player_hp     = pet.cur_hp
+  _state.player_max_hp = pet.hp
+  _state.player_atk     = pet.atk
 }
 
 pub fn recover_after_defeat() -> Unit {
   if _state.player_hp <= 0 {
-    _state.player_hp = _state.player_max_hp
+    _state.player_hp = _state.owned[_state.active].hp
+    _state.owned[_state.active].cur_hp = _state.owned[_state.active].hp
+  }
+  // 战斗结束后保存当前 HP
+  _state.owned[_state.active].cur_hp = _state.player_hp
+}
+
+// ── 宠物管理 ──────────────────────────────────────────────────────────────
+
+pub fn clear_pets() -> Unit {
+  _state.owned = []
+}
+
+pub fn add_pet(hp : Int, atk : Int, cur_hp : Int) -> Int {
+  let idx = _state.owned.length()
+  _state.owned.push({ name: "未知", emoji: "❓", hp: hp, atk: atk, lv: 1, cur_hp: cur_hp })
+  idx
+}
+
+pub fn set_active(idx : Int) -> Unit {
+  if idx >= 0 && idx < _state.owned.length() {
+    _state.active = idx
   }
 }
 
-// ── 存档 ──────────────────────────────────────────────────────────────────
+pub fn get_active() -> Int { _state.active }
 
-/// 导出存档数据。格式：每行一个条目，前两行为头信息。
-/// 行0: 版本号 "1"
-/// 行1: 校验和（所有数据行拼接后的字符码之和 mod 65536）
-/// 行2+: "name" "emoji" 交替排列
+// ── 宠物数据 getter ──────────────────────────────────────────────────────
+
+pub fn get_owned_count() -> Int { _state.owned.length() }
+
+pub fn get_owned_name(i : Int) -> String {
+  if i >= 0 && i < _state.owned.length() { _state.owned[i].name } else { "" }
+}
+pub fn get_owned_emoji(i : Int) -> String {
+  if i >= 0 && i < _state.owned.length() { _state.owned[i].emoji } else { "" }
+}
+pub fn get_owned_hp(i : Int) -> Int {
+  if i >= 0 && i < _state.owned.length() { _state.owned[i].hp } else { 0 }
+}
+pub fn get_owned_atk(i : Int) -> Int {
+  if i >= 0 && i < _state.owned.length() { _state.owned[i].atk } else { 0 }
+}
+pub fn get_owned_lv(i : Int) -> Int {
+  if i >= 0 && i < _state.owned.length() { _state.owned[i].lv } else { 0 }
+}
+pub fn get_owned_cur_hp(i : Int) -> Int {
+  if i >= 0 && i < _state.owned.length() { _state.owned[i].cur_hp } else { 0 }
+}
+
+// ── 存档导出 ──────────────────────────────────────────────────────────────
+
 pub fn export_save() -> String {
-  let count = _state.captured.length()
-  let lines = "1\n"
-  let mut data = ""
+  let count = _state.owned.length()
+  let lines = "3\n"
+  let mut data = _state.active.to_string() + "\n"
   for i = 0; i < count; i = i + 1 {
-    data = data + _state.captured[i].name + "\n"
-    data = data + _state.captured[i].emoji + "\n"
+    data = data + _state.owned[i].name + "\n"
+    data = data + _state.owned[i].emoji + "\n"
+    data = data + _state.owned[i].hp.to_string() + "\n"
+    data = data + _state.owned[i].atk.to_string() + "\n"
+    data = data + _state.owned[i].lv.to_string() + "\n"
+    data = data + _state.owned[i].cur_hp.to_string() + "\n"
   }
   let checksum = calc_checksum(data)
   lines + checksum.to_string() + "\n" + data
@@ -57,27 +105,11 @@ fn calc_checksum(s : String) -> Int {
 
 pub fn get_player_hp()      -> Int    { _state.player_hp }
 pub fn get_player_max_hp()  -> Int    { _state.player_max_hp }
+pub fn get_player_atk()     -> Int    { _state.player_atk }
 pub fn get_enemy_hp()       -> Int    { _state.enemy_hp }
 pub fn get_enemy_max_hp()   -> Int    { _state.enemy_max_hp }
 pub fn get_enemy_name()     -> String { _state.enemy_name }
 pub fn get_enemy_emoji()    -> String { _state.enemy_emoji }
-pub fn get_captured_count() -> Int    { _state.captured.length() }
-
-pub fn get_captured_name(i : Int) -> String {
-  if i >= 0 && i < _state.captured.length() {
-    _state.captured[i].name
-  } else {
-    ""
-  }
-}
-
-pub fn get_captured_emoji(i : Int) -> String {
-  if i >= 0 && i < _state.captured.length() {
-    _state.captured[i].emoji
-  } else {
-    ""
-  }
-}
 
 // ── 行动结果 Getter ───────────────────────────────────────────────────────
 

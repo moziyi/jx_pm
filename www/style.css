@@ -136,13 +136,49 @@ body {
 .captured-list { display: flex; flex-wrap: wrap; gap: 6px; min-height: 24px; }
 .captured-tag {
   font-size: 12px;
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: 999px;
   background: rgba(55,138,221,0.15);
   border: 0.5px solid rgba(55,138,221,0.4);
   color: #7ab8f0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.15s;
+}
+.captured-tag:hover { background: rgba(55,138,221,0.28); }
+.tag-emoji { font-size: 15px; }
+.tag-name { font-weight: 500; }
+.tag-stats {
+  font-size: 10px;
+  color: var(--muted);
+  margin-left: 2px;
+  font-family: monospace;
 }
 .empty-tip { font-size: 12px; color: var(--muted); }
+.active-pet { border-color: var(--yellow) !important; box-shadow: 0 0 6px rgba(239,159,39,0.3); }
+
+/* 宠物菜单 */
+.popup-btn {
+  display: block; width: 100%; padding: 6px 10px; border: none; background: none;
+  color: var(--text); font-size: 12px; text-align: left; cursor: pointer; border-radius: 4px;
+}
+.popup-btn:hover { background: rgba(255,255,255,0.08); }
+.popup-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* 战斗切换面板 */
+.pet-switch {
+  display: flex; gap: 6px; padding: 8px 12px; flex-wrap: wrap;
+  border-bottom: 0.5px solid var(--border);
+}
+.switch-pet-btn {
+  padding: 4px 10px; border-radius: 6px; border: 0.5px solid var(--border);
+  background: rgba(255,255,255,0.04); color: var(--text); font-size: 12px;
+  cursor: pointer; transition: background 0.15s;
+}
+.switch-pet-btn:hover:not(:disabled) { background: rgba(255,255,255,0.1); }
+.switch-pet-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 /* ── 战斗界面 ── */
 #battle-view {
