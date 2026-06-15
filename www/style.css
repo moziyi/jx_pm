@@ -1,0 +1,248 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --green:  #3da84a;
+  --yellow: #EF9F27;
+  --red:    #E24B4A;
+  --blue:   #378add;
+  --bg:     #1a1a2e;
+  --surface:#16213e;
+  --border: rgba(255,255,255,0.1);
+  --text:   #e8e8f0;
+  --muted:  #888899;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+#app {
+  width: 100%;
+  max-width: 560px;
+}
+
+/* ── HUD ── */
+.hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+.hud-title { font-size: 15px; font-weight: 500; }
+.hud-right  { font-size: 13px; color: var(--muted); }
+
+/* ── 地图 ── */
+.map-bg {
+  position: relative;
+  width: 100%;
+  height: 340px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 0.5px solid var(--border);
+}
+
+#map-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* 标记点 */
+.marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  z-index: 10;
+}
+.marker:hover .marker-dot { transform: scale(1.2); }
+.marker:focus-visible .marker-dot { outline: 2px solid white; outline-offset: 2px; }
+
+.marker-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.85);
+  position: relative;
+  transition: transform 0.15s;
+}
+.marker-dot::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid;
+  animation: pulse 2s ease-out infinite;
+}
+
+.m-forest .marker-dot { background: #3da84a; }
+.m-forest .marker-dot::after { border-color: #3da84a; }
+.m-cave   .marker-dot { background: #888; }
+.m-cave   .marker-dot::after { border-color: #888; }
+.m-ruins  .marker-dot { background: #c4963a; }
+.m-ruins  .marker-dot::after { border-color: #c4963a; }
+.m-lake   .marker-dot { background: #378add; }
+.m-lake   .marker-dot::after { border-color: #378add; }
+
+.marker-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: #fff;
+  background: rgba(0,0,0,0.6);
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+@keyframes pulse {
+  0%   { transform: scale(1);   opacity: 0.7; }
+  100% { transform: scale(2.4); opacity: 0;   }
+}
+
+.hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  margin: 8px 0 12px;
+}
+
+/* 已捕捉 */
+.captured-section { margin-top: 4px; }
+.section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.captured-list { display: flex; flex-wrap: wrap; gap: 6px; min-height: 24px; }
+.captured-tag {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(55,138,221,0.15);
+  border: 0.5px solid rgba(55,138,221,0.4);
+  color: #7ab8f0;
+}
+.empty-tip { font-size: 12px; color: var(--muted); }
+
+/* ── 战斗界面 ── */
+#battle-view {
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.battle-scene {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 24px 20px 16px;
+  background: var(--bg);
+  border-bottom: 0.5px solid var(--border);
+}
+
+.entity { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.avatar {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  border: 0.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+}
+.entity-name { font-size: 13px; font-weight: 500; }
+
+.hp-wrap { width: 110px; }
+.hp-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.hp-track {
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.hp-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.35s ease;
+}
+.hp-fill.green  { background: var(--green); }
+.hp-fill.yellow { background: var(--yellow); }
+.hp-fill.red    { background: var(--red); }
+
+.vs {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 4px 8px;
+  border: 0.5px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 28px;
+}
+
+/* 战斗日志 */
+.battle-log {
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  min-height: 48px;
+  border-bottom: 0.5px solid var(--border);
+  color: var(--text);
+}
+
+/* 行动按钮 */
+.battle-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 12px;
+}
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 6px;
+  background: rgba(255,255,255,0.04);
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text);
+  transition: background 0.1s, transform 0.1s;
+}
+.action-btn:hover:not(:disabled) { background: rgba(255,255,255,0.08); }
+.action-btn:active:not(:disabled) { transform: scale(0.97); }
+.action-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.btn-icon { font-size: 20px; }
+.btn-text { font-size: 13px; font-weight: 500; }
+.btn-sub  { font-size: 10px; color: var(--muted); text-align: center; }
+
+.btn-catch { border-color: rgba(55,138,221,0.5) !important; }
+.btn-catch .btn-text { color: #7ab8f0; }

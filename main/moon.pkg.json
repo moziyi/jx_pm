@@ -1,0 +1,58 @@
+{
+  "link": {
+    "wasm": {
+      "exports": [
+        "new_game",
+        "start_battle",
+        "player_attack",
+        "try_catch",
+        "run_away",
+        "recover_after_defeat",
+        "get_player_hp",
+        "get_player_max_hp",
+        "get_enemy_hp",
+        "get_enemy_max_hp",
+        "get_enemy_name",
+        "get_enemy_emoji",
+        "get_captured_count",
+        "get_captured_name",
+        "get_captured_emoji",
+        "get_last_message",
+        "get_last_damage_dealt",
+        "get_last_damage_taken",
+        "get_last_catch_success",
+        "get_last_catch_rate",
+        "get_last_player_defeated",
+        "get_last_enemy_defeated"
+      ],
+      "export-memory-name": "memory"
+    },
+    "wasm-gc": {
+      "exports": [
+        "new_game",
+        "start_battle",
+        "player_attack",
+        "try_catch",
+        "run_away",
+        "recover_after_defeat",
+        "get_player_hp",
+        "get_player_max_hp",
+        "get_enemy_hp",
+        "get_enemy_max_hp",
+        "get_enemy_name",
+        "get_enemy_emoji",
+        "get_captured_count",
+        "get_captured_name",
+        "get_captured_emoji",
+        "get_last_message",
+        "get_last_damage_dealt",
+        "get_last_damage_taken",
+        "get_last_catch_success",
+        "get_last_catch_rate",
+        "get_last_player_defeated",
+        "get_last_enemy_defeated"
+      ],
+      "use-js-builtin-string": true
+    }
+  }
+}
