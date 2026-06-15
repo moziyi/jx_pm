@@ -39,7 +39,35 @@ function ds(ptr) {
   return new TextDecoder('utf-16le').decode(mem.slice(ptr, ptr + len * 2))
 }
 
-// ── 3. 初始化 ──────────────────────────────────────────────────────────────
+// ── 3. 存档 ────────────────────────────────────────────────────────────────
+// 存档格式由 MoonBit (export_save) 定义，JS 只负责存取。
+// 格式: "版本\n校验和\n名称1\n表情1\n名称2\n表情2\n..."
+const SAVE_KEY = 'phantom_forest_save'
+
+function saveGame() {
+  const data = ds(exports.export_save())
+  localStorage.setItem(SAVE_KEY, data)
+}
+
+function loadSave() {
+  const raw = localStorage.getItem(SAVE_KEY)
+  if (!raw) return []
+  const lines = raw.split('\n')
+  if (lines.length < 2) return []
+  // 验证校验和（与 MoonBit calc_checksum 算法一致）
+  const dataLines = lines.slice(2).join('\n')
+  let sum = 0
+  for (let i = 0; i < dataLines.length; i++) sum = (sum + dataLines.charCodeAt(i)) % 65536
+  if (String(sum) !== lines[1]) { console.warn('存档校验失败，数据可能被篡改'); return [] }
+  // 解析: 每两行为一组 (name, emoji)
+  const captured = []
+  for (let i = 2; i + 1 < lines.length; i += 2) {
+    captured.push({ n: lines[i], e: lines[i + 1] })
+  }
+  return captured
+}
+
+// ── 4. 初始化 ──────────────────────────────────────────────────────────────
 exports.new_game()
 
 const $ = (id) => document.getElementById(id)
@@ -74,6 +102,8 @@ function drawMap() {
   for (let i = 0; i < W; i += 28) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, H); ctx.stroke() }
   for (let j = 0; j < H; j += 28) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(W, j); ctx.stroke() }
 }
+
+syncCaptured()   // 恢复存档
 
 requestAnimationFrame(() => {
   drawMap()
@@ -134,12 +164,27 @@ function setHp(who, cur, max) {
 }
 
 function syncCaptured() {
-  const count = exports.get_captured_count()
-  caughtCount.textContent = count
-  if (count === 0) { capturedList.innerHTML = '<span class="empty-tip">还没有捕捉到任何生物</span>'; return }
-  let html = ''
-  for (let i = 0; i < count; i++) html += `<span class="captured-tag">${ds(exports.get_captured_emoji(i))} ${ds(exports.get_captured_name(i))}</span>`
-  capturedList.innerHTML = html
+  // 读取当前会话的捕捉
+  const current = []
+  const n = exports.get_captured_count()
+  for (let i = 0; i < n; i++) {
+    current.push({ n: ds(exports.get_captured_name(i)), e: ds(exports.get_captured_emoji(i)) })
+  }
+  // 合并存档（去重）
+  const saved = loadSave()
+  const seen = new Set()
+  const merged = []
+  for (const c of [...saved, ...current]) {
+    const key = c.n + c.e
+    if (!seen.has(key)) { seen.add(key); merged.push(c) }
+  }
+  saveGame()
+  caughtCount.textContent = merged.length
+  if (merged.length === 0) {
+    capturedList.innerHTML = '<span class="empty-tip">还没有捕捉到任何生物</span>'
+  } else {
+    capturedList.innerHTML = merged.map(c => `<span class="captured-tag">${c.e} ${c.n}</span>`).join('')
+  }
 }
 
 function setLog(msg)    { battleLog.textContent = msg }

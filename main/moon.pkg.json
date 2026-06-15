@@ -23,7 +23,8 @@
         "get_last_catch_success",
         "get_last_catch_rate",
         "get_last_player_defeated",
-        "get_last_enemy_defeated"
+        "get_last_enemy_defeated",
+        "export_save"
       ],
       "export-memory-name": "memory"
     },
@@ -50,7 +51,8 @@
         "get_last_catch_success",
         "get_last_catch_rate",
         "get_last_player_defeated",
-        "get_last_enemy_defeated"
+        "get_last_enemy_defeated",
+        "export_save"
       ],
       "use-js-builtin-string": true
     }
