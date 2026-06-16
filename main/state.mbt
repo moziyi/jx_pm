@@ -1,25 +1,7 @@
-// state.mbt — 数据结构、全局状态、地点配置、五行元素
+// state.mbt — 数据结构与全局状态
 
 // JS 互操作
 fn math_random() -> Double = "env" "math_random"
-
-// 五行元素
-enum Element {
-  Metal
-  Wood
-  Earth
-  Water
-  Fire
-}
-
-// 地点配置
-priv struct LocationConfig {
-  name    : String
-  emoji   : String
-  hp      : Int
-  atk     : Int
-  element : Element
-}
 
 // 已拥有宠物
 priv struct CapturedEntry {
@@ -30,6 +12,13 @@ priv struct CapturedEntry {
   lv      : Int
   mut cur_hp : Int
   element : Element
+}
+
+// 道具
+priv struct Inventory {
+  mut herbs  : Int
+  mut revives : Int
+  mut charms : Int
 }
 
 // 行动结果
@@ -58,17 +47,6 @@ priv struct GameState {
   mut active         : Int
 }
 
-// 初始宠物（火元素）
-let _starter : CapturedEntry = {
-  name:    "小幽",
-  emoji:   "🧚",
-  hp:      35,
-  atk:     8,
-  lv:      1,
-  cur_hp:  35,
-  element: Fire,
-}
-
 // 全局实例
 let _state : GameState = {
   player_hp:     _starter.cur_hp,
@@ -94,52 +72,4 @@ let _result : LastResult = {
   enemy_defeated:  false,
 }
 
-// 地点数据（木/土/金/水，火由初始宠物覆盖）
-fn get_location(id : Int) -> LocationConfig {
-  match id {
-    1 => { name: "幽林精灵", emoji: "🧚", hp: 35, atk: 8,  element: Wood  }
-    2 => { name: "水晶蝙蝠", emoji: "🦇", hp: 28, atk: 10, element: Earth }
-    3 => { name: "神殿卫士", emoji: "⚗️",  hp: 50, atk: 14, element: Metal }
-    4 => { name: "月影水灵", emoji: "💧", hp: 32, atk: 7,  element: Water }
-    _ => { name: "未知生物", emoji: "❓", hp: 30, atk: 9,  element: Fire  }
-  }
-}
-
-// Element -> Int（供 JS 读取）
-pub fn element_to_int(e : Element) -> Int {
-  match e {
-    Metal => 0
-    Wood  => 1
-    Earth => 2
-    Water => 3
-    Fire  => 4
-  }
-}
-
-fn int_to_element(i : Int) -> Element {
-  match i {
-    0 => Metal
-    1 => Wood
-    2 => Earth
-    3 => Water
-    _ => Fire
-  }
-}
-
-// ── 道具 ──────────────────────────────────────────────────────────────────
-
-priv struct Inventory {
-  mut herbs  : Int
-  mut revives : Int
-  mut charms : Int
-}
-
 let _inventory : Inventory = { herbs: 3, revives: 1, charms: 2 }
-
-pub fn get_herbs()  -> Int { _inventory.herbs }
-pub fn get_revives() -> Int { _inventory.revives }
-pub fn get_charms() -> Int { _inventory.charms }
-
-pub fn add_herbs(n : Int)  -> Unit { _inventory.herbs  = _inventory.herbs  + n }
-pub fn add_revives(n : Int) -> Unit { _inventory.revives = _inventory.revives + n }
-pub fn add_charms(n : Int) -> Unit { _inventory.charms  = _inventory.charms  + n }

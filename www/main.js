@@ -1,20 +1,20 @@
-// ---------------------------------------------------------------------------
-// main.js — 幻兽森林 JS 胶水层
-// ---------------------------------------------------------------------------
+// main.js — 幻兽森林 应用逻辑
+import { ELEMENTS, STARTER_PET, INITIAL_ITEMS, LOCATIONS, EVENTS } from './config.js'
+import { checksum, getUUID, loadGame, saveGame } from './storage.js'
 
 (async () => {
 
 const wasmUrl = '/_build/wasm/release/build/main/main.wasm'
 let exports, mem, pets = []
 
-// ── 1. 加载 WASM ───────────────────────────────────────────────────────────
+// ── 1. WASM 加载 ───────────────────────────────────────────────────────────
 try {
   const buf = await fetch(wasmUrl).then(r => { if (!r.ok) throw Error(`HTTP ${r.status}`); return r.arrayBuffer() })
   const { instance } = await WebAssembly.instantiate(buf, { env: { math_random: () => Math.random() } })
   exports = instance.exports
   mem = new Uint8Array(exports.memory.buffer)
 } catch (err) {
-  document.body.innerHTML = `<div style="padding:24px;color:#E24B4A;background:#1a1a2e;font-family:monospace;font-size:14px;max-width:580px;margin:40px auto;border-radius:12px;border:1px solid #E24B4A;"><b>WASM 加载失败</b><br><br><b>错误:</b> ${err.message}<br><br>请从 projects/ 目录启动服务器并确保已编译</div>`
+  document.body.innerHTML = `<div style="padding:24px;color:#E24B4A;background:#1a1a2e;font-family:monospace;max-width:580px;margin:40px auto;border-radius:12px;border:1px solid #E24B4A;"><b>WASM 加载失败</b><br><br>${err.message}</div>`
   return
 }
 
@@ -25,60 +25,8 @@ function ds(ptr) {
   return new TextDecoder('utf-16le').decode(mem.slice(ptr, ptr + len * 2))
 }
 
-function checksum(s) { let sum = 0; for (let i = 0; i < s.length; i++) sum = (sum + s.charCodeAt(i)) % 65536; return sum }
-
-// ── 3. 存档 ────────────────────────────────────────────────────────────────
-const SAVE_KEY = 'phantom_forest_v3'
-
-function getUUID() {
-  let id = localStorage.getItem('phantom_uuid')
-  if (!id) { id = crypto.randomUUID(); localStorage.setItem('phantom_uuid', id) }
-  return id
-}
-
-function loadPets() {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY)
-    if (!raw) return null
-    const lines = raw.split('\n')
-    const ver = parseInt(lines[0])
-    // v3: 3\nchecksum\nuuid\nactive\npetdata... (6/pet)
-    // v2: 2\nchecksum\npetdata... (5/pet, upgrade to v3)
-    let uuid, active = 0, dataStart
-    if (ver >= 3) {
-      const data = lines.slice(2).join('\n')
-      if (String(checksum(data)) !== lines[1]) { console.warn('存档校验失败'); return null }
-      uuid = lines[2]; active = parseInt(lines[3]) || 0
-      let inv = { herbs: 3, revives: 1, charms: 2 }
-      if (ver >= 5) {
-        inv = { herbs: parseInt(lines[4])||0, revives: parseInt(lines[5])||0, charms: parseInt(lines[6])||0 }
-        dataStart = 7
-      } else { dataStart = 4 }
-      const n = ver >= 4 ? 7 : 6
-      const r = []
-      for (let i = dataStart; i + n - 1 < lines.length; i += n) {
-        r.push({
-          n: lines[i], e: lines[i+1],
-          hp: parseInt(lines[i+2]), atk: parseInt(lines[i+3]),
-          lv: parseInt(lines[i+4]), cur_hp: parseInt(lines[i+5]),
-          el: ver >= 4 ? (parseInt(lines[i+6]) || 0) : 4
-        })
-      }
-      return { uuid, active, inv, pets: r }
-    }
-  } catch { return null }
-}
-
-function savePets() {
-  const h = exports.get_herbs ? exports.get_herbs() : 3
-  const r = exports.get_revives ? exports.get_revives() : 1
-  const c = exports.get_charms ? exports.get_charms() : 2
-  const data = `${getUUID()}\n${exports.get_active()}\n${h}\n${r}\n${c}\n` + pets.map(p => `${p.n}\n${p.e}\n${p.hp}\n${p.atk}\n${p.lv}\n${p.cur_hp}\n${p.el ?? 4}`).join('\n') + '\n'
-  localStorage.setItem(SAVE_KEY, `5\n${checksum(data)}\n${data}`)
-}
-
-// ── 4. 初始化 ──────────────────────────────────────────────────────────────
-const saved = loadPets()
+// ── 3. 初始化 ──────────────────────────────────────────────────────────────
+const saved = loadGame()
 if (saved && saved.pets.length > 0) {
   exports.clear_pets()
   for (const p of saved.pets) exports.add_pet(p.hp, p.atk, p.cur_hp, p.el ?? 4)
@@ -95,21 +43,7 @@ if (saved && saved.pets.length > 0) {
   for (let i = 0; i < n; i++) {
     pets.push({ n: ds(exports.get_owned_name(i)), e: ds(exports.get_owned_emoji(i)), hp: exports.get_owned_hp(i), atk: exports.get_owned_atk(i), lv: exports.get_owned_lv(i), cur_hp: exports.get_owned_cur_hp(i), el: exports.get_owned_element(i) })
   }
-  savePets()
-}
-
-function updateItemCounts() {
-  const h = exports.get_herbs ? exports.get_herbs() : 0
-  const r = exports.get_revives ? exports.get_revives() : 0
-  const c = exports.get_charms ? exports.get_charms() : 0
-  const set = (id, n) => { const el = $(id); if (el) el.textContent = 'x' + n }
-  set('herb-count', h); set('map-herb-count', h)
-  set('revive-count', r); set('map-revive-count', r)
-  set('charm-count', c)
-  // 禁用无库存按钮
-  if (btnUseHerb) btnUseHerb.disabled = h <= 0
-  if (btnUseRevive) btnUseRevive.disabled = r <= 0
-  if (btnUseCharm) btnUseCharm.disabled = c <= 0
+  saveGame(pets, exports)
 }
 
 function syncFromMoonBit() {
@@ -118,28 +52,25 @@ function syncFromMoonBit() {
     if (i >= pets.length) {
       pets.push({ n: ds(exports.get_owned_name(i)), e: ds(exports.get_owned_emoji(i)), hp: exports.get_owned_hp(i), atk: exports.get_owned_atk(i), lv: exports.get_owned_lv(i), cur_hp: exports.get_owned_cur_hp(i), el: exports.get_owned_element(i) })
     } else {
-      pets[i].hp = exports.get_owned_hp(i)
-      pets[i].atk = exports.get_owned_atk(i)
-      pets[i].cur_hp = exports.get_owned_cur_hp(i)
-      pets[i].el = exports.get_owned_element(i)
+      pets[i].hp = exports.get_owned_hp(i); pets[i].atk = exports.get_owned_atk(i)
+      pets[i].cur_hp = exports.get_owned_cur_hp(i); pets[i].el = exports.get_owned_element(i)
     }
   }
   pets.length = count
   updateItemCounts()
-  savePets()
+  saveGame(pets, exports)
   renderPetList()
 }
 
-// ── 5. DOM ─────────────────────────────────────────────────────────────────
+// ── 4. DOM ─────────────────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id)
 const mapView = $('map-view'), battleView = $('battle-view'), battleLog = $('battle-log')
 const capturedList = $('captured-list'), caughtCount = $('caught-count')
 const btnAttack = $('btn-attack'), btnSkill = $('btn-skill'), btnRun = $('btn-run')
 const btnUseHerb = $('btn-herb'), btnUseRevive = $('btn-revive'), btnUseCharm = $('btn-charm')
 const petSwitchPanel = $('pet-switch')
-const activePetInfo = $('active-pet')
 
-// ── 6. 地图 ────────────────────────────────────────────────────────────────
+// ── 5. 地图 ────────────────────────────────────────────────────────────────
 function drawMap() {
   const c = $('map-canvas'); if (!c) return
   const W = c.width = c.offsetWidth || 560, H = c.height = c.offsetHeight || 340
@@ -152,52 +83,38 @@ function drawMap() {
   for (let i=0;i<W;i+=28){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,H);ctx.stroke()}
   for (let j=0;j<H;j+=28){ctx.beginPath();ctx.moveTo(0,j);ctx.lineTo(W,j);ctx.stroke()}
 }
-requestAnimationFrame(() => { drawMap(); console.log('Map drawn') })
+requestAnimationFrame(() => { drawMap() })
 window.addEventListener('resize', drawMap)
 
-// ── 7. 元素 ────────────────────────────────────────────────────────────────
-const ELEMENTS = ['金','木','土','水','火']
-
-// ── 8. 宠物列表 UI ─────────────────────────────────────────────────────────
+// ── 6. 宠物列表 ────────────────────────────────────────────────────────────
 function renderPetList() {
   const max = exports.get_max_pets ? exports.get_max_pets() : 5
   $('max-pets').textContent = max
   const active = exports.get_active()
   caughtCount.textContent = pets.length
-  if (activePetInfo) {
+  if ($('active-pet')) {
     const a = pets[active]
-    if (a) activePetInfo.textContent = `${a.e} ${a.n} HP:${a.cur_hp}/${a.hp} ATK:${a.atk}`
+    if (a) $('active-pet').textContent = `${a.e} ${a.n} HP:${a.cur_hp}/${a.hp} ATK:${a.atk}`
   }
   if (pets.length === 0) { capturedList.innerHTML = '<span class="empty-tip">还没有宠物</span>'; return }
   capturedList.innerHTML = pets.map((p, i) => {
-    const isActive = i === active
     const el = ELEMENTS[p.el ?? 4] || '?'
-    return `<span class="captured-tag${isActive ? ' active-pet' : ''}" data-idx="${i}" title="HP:${p.cur_hp}/${p.hp} ATK:${p.atk} 元素:${el}${isActive ? ' ⚔️出战中' : ''}">
+    return `<span class="captured-tag${i === active ? ' active-pet' : ''}" data-idx="${i}" title="HP:${p.cur_hp}/${p.hp} ATK:${p.atk} 元素:${el}${i===active?' ⚔️出战中':''}">
       <span class="tag-emoji">${p.e}</span><span class="tag-name">${p.n}</span>
-      <span class="tag-element">${el}</span>
-      <span class="tag-stats">${p.cur_hp}/${p.hp}</span>
+      <span class="tag-element">${el}</span><span class="tag-stats">${p.cur_hp}/${p.hp}</span>
     </span>`
   }).join('')
-  // 点击弹出菜单
   capturedList.querySelectorAll('.captured-tag').forEach(el => {
-    el.addEventListener('click', (e) => {
-      e.stopPropagation()
-      const idx = parseInt(el.dataset.idx)
-      showPetMenu(idx, el)
-    })
+    el.addEventListener('click', (e) => { e.stopPropagation(); showPetMenu(parseInt(el.dataset.idx), el) })
   })
 }
 
 function showPetMenu(idx, anchor) {
-  const old = document.querySelector('.pet-popup')
-  if (old) old.remove()
-  const popup = document.createElement('div')
-  popup.className = 'pet-popup'
+  const old = document.querySelector('.pet-popup'); if (old) old.remove()
+  const popup = document.createElement('div'); popup.className = 'pet-popup'
   const rect = anchor.getBoundingClientRect()
   popup.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.bottom+4}px;background:#16213e;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:4px;z-index:100;min-width:120px;`
-  const isActive = idx === exports.get_active()
-  const p = pets[idx]
-  const onlyOne = pets.length <= 1
+  const p = pets[idx], isActive = idx === exports.get_active(), onlyOne = pets.length <= 1
   popup.innerHTML = `
     <div style="padding:6px 10px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:2px;">${p.e} ${p.n} <span style="color:#888;font-size:11px;">HP:${p.cur_hp}/${p.hp} ATK:${p.atk}</span></div>
     <button class="popup-btn" data-action="rename">✏️ 改名</button>
@@ -206,119 +123,118 @@ function showPetMenu(idx, anchor) {
   `
   popup.querySelectorAll('.popup-btn').forEach(b => {
     b.addEventListener('click', () => {
-      const action = b.dataset.action
-      popup.remove()
-      if (action === 'rename') {
-        const name = prompt('为这只宠物取名：', p.n)
-        if (name && name.trim()) { pets[idx].n = name.trim(); savePets(); renderPetList() }
-      } else if (action === 'setactive') {
-        exports.set_active(idx)
-        syncFromMoonBit()
-      } else if (action === 'release') {
-        if (confirm(`确定要放生 ${p.e} ${p.n} 吗？此操作不可撤销。`)) {
-          exports.release_pet(idx)
-          syncFromMoonBit()
-        }
-      }
+      const a = b.dataset.action; popup.remove()
+      if (a === 'rename') { const n = prompt('为这只宠物取名：', p.n); if (n && n.trim()) { pets[idx].n = n.trim(); saveGame(pets, exports); renderPetList() } }
+      else if (a === 'setactive') { exports.set_active(idx); syncFromMoonBit() }
+      else if (a === 'release') { if (confirm(`确定要放生 ${p.e} ${p.n} 吗？此操作不可撤销。`)) { exports.release_pet(idx); syncFromMoonBit() } }
     })
   })
   document.body.appendChild(popup)
   setTimeout(() => document.addEventListener('click', () => popup.remove(), { once: true }), 10)
 }
 
-// ── 9. 地图道具 ────────────────────────────────────────────────────────────
-const mapHerb = $('map-herb'), mapRevive = $('map-revive')
-if (mapHerb) mapHerb.addEventListener('click', () => {
-  if (exports.get_herbs() <= 0) return
-  exports.use_herb()
-  syncFromMoonBit()
-})
-if (mapRevive) mapRevive.addEventListener('click', () => {
+// ── 7. 道具 UI ─────────────────────────────────────────────────────────────
+function updateItemCounts() {
+  const h = exports.get_herbs(), r = exports.get_revives(), c = exports.get_charms()
+  const set = (id, n) => { const el = $(id); if (el) el.textContent = 'x' + n }
+  set('herb-count', h); set('map-herb-count', h); set('revive-count', r); set('map-revive-count', r); set('charm-count', c)
+  if (btnUseHerb) btnUseHerb.disabled = h <= 0
+  if (btnUseRevive) btnUseRevive.disabled = r <= 0
+  if (btnUseCharm) btnUseCharm.disabled = c <= 0
+}
+
+// 地图道具按钮
+$('map-herb')?.addEventListener('click', () => { if (exports.get_herbs() > 0) { exports.use_herb(); syncFromMoonBit() } })
+$('map-revive')?.addEventListener('click', () => {
   if (exports.get_revives() <= 0) return
   const dead = pets.findIndex(p => p.cur_hp <= 0)
   if (dead < 0) { alert('没有需要复苏的宠物'); return }
-  exports.use_revive(dead)
-  syncFromMoonBit()
+  exports.use_revive(dead); syncFromMoonBit()
 })
 
-// ── 10. 地图标记点击 ───────────────────────────────────────────────────────
+// ── 8. 事件系统 ────────────────────────────────────────────────────────────
+function triggerEvent(locId) {
+  const pool = EVENTS[locId]
+  if (!pool) return 'battle'
+  const evt = pool[Math.floor(Math.random() * pool.length)]
+  // 非战斗事件：立即执行效果
+  if (evt.type === 'battle') return 'battle'
+  if (evt.type === 'item') { exports['add_' + evt.item](evt.n); if (evt.extra) exports['add_' + evt.extra.item](evt.extra.n) }
+  else if (evt.type === 'heal_active') exports.heal_active(evt.n)
+  else if (evt.type === 'hurt_active') exports.hurt_active(evt.n)
+  else if (evt.type === 'heal_all') exports.heal_all(evt.n)
+  else if (evt.type === 'hurt_all') exports.hurt_all(evt.n)
+  syncFromMoonBit()
+  showEventMessage(evt.msg)
+  return 'event'
+}
+
+function showEventMessage(msg) {
+  const el = document.createElement('div')
+  el.style.cssText = 'position:fixed;top:20%;left:50%;transform:translateX(-50%);background:#16213e;color:#e8e8f0;padding:16px 24px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);z-index:200;font-size:14px;text-align:center;min-width:200px;box-shadow:0 4px 20px rgba(0,0,0,0.5);'
+  el.textContent = msg
+  document.body.appendChild(el)
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.5s'; setTimeout(() => el.remove(), 500) }, 1500)
+}
+
+// ── 9. 地图标记 ────────────────────────────────────────────────────────────
 document.querySelectorAll('.marker').forEach(btn => {
   btn.addEventListener('click', () => {
-    const id = parseInt(btn.dataset.id, 10)
-    exports.start_battle(id)
-    syncBattleUI()
-    setLog(`遭遇了 ${ds(exports.get_enemy_name())}！选择你的行动。`)
-    setButtons(true)
-    petSwitchPanel.hidden = false
-    const bi = $('battle-items'); if (bi) bi.hidden = false
-    $('map-items').hidden = true
-    mapView.hidden = true; battleView.hidden = false
+    const locId = parseInt(btn.dataset.id, 10)
+    const result = triggerEvent(locId)
+    if (result === 'battle') {
+      exports.start_battle(locId)
+      syncBattleUI()
+      setLog(`遭遇了 ${ds(exports.get_enemy_name())}！选择你的行动。`)
+      setButtons(true)
+      petSwitchPanel.hidden = false
+      const bi = $('battle-items'); if (bi) bi.hidden = false
+      $('map-items').hidden = true
+      mapView.hidden = true; battleView.hidden = false
+    }
   })
 })
 
-// ── 9. 战斗按钮 ────────────────────────────────────────────────────────────
+// ── 10. 战斗 ───────────────────────────────────────────────────────────────
 btnAttack.addEventListener('click', () => { setButtons(false); exports.player_attack(); handleResult() })
-if (btnSkill) btnSkill.addEventListener('click', () => { setButtons(false); exports.elemental_skill(); handleResult() })
+btnSkill?.addEventListener('click', () => { setButtons(false); exports.elemental_skill(); handleResult() })
 btnRun.addEventListener('click', () => { setButtons(false); exports.run_away(); setLog(ds(exports.get_last_message())); setTimeout(exitBattle, 900) })
 
-// 道具按钮
-if (btnUseHerb) btnUseHerb.addEventListener('click', () => {
-  setButtons(false)
-  if (exports.use_herb()) { setLog(ds(exports.get_last_message())); syncBattleUI(); syncFromMoonBit() }
-  setButtons(true)
+btnUseHerb?.addEventListener('click', () => {
+  setButtons(false); if (exports.use_herb()) { setLog(ds(exports.get_last_message())); syncBattleUI(); syncFromMoonBit() }; setButtons(true)
 })
-if (btnUseRevive) btnUseRevive.addEventListener('click', () => {
+btnUseRevive?.addEventListener('click', () => {
   const dead = pets.findIndex(p => p.cur_hp <= 0)
   if (dead < 0) { alert('没有需要复苏的宠物'); return }
-  setButtons(false)
-  if (exports.use_revive(dead)) { setLog(ds(exports.get_last_message())); syncBattleUI(); syncFromMoonBit() }
-  setButtons(true)
+  setButtons(false); if (exports.use_revive(dead)) { setLog(ds(exports.get_last_message())); syncBattleUI(); syncFromMoonBit() }; setButtons(true)
 })
-if (btnUseCharm) btnUseCharm.addEventListener('click', () => {
-  setButtons(false)
-  if (exports.use_charm()) { handleResult() } else { setButtons(true) }
-})
+btnUseCharm?.addEventListener('click', () => { setButtons(false); if (exports.use_charm()) { handleResult() } else { setButtons(true) } })
 
 function renderSwitchPanel() {
   if (!petSwitchPanel) return
   const cur = exports.get_active()
   petSwitchPanel.innerHTML = pets.map((p, i) => {
     const dead = p.cur_hp <= 0
-    return `<button class="switch-pet-btn" data-idx="${i}" ${dead || i === cur ? 'disabled' : ''}>
-      ${p.e} ${p.n} <span style="font-size:10px;color:var(--muted)">${p.cur_hp}/${p.hp}</span>${i===cur?' ⚔️':''}
-    </button>`
+    return `<button class="switch-pet-btn" data-idx="${i}" ${dead || i === cur ? 'disabled' : ''}>${p.e} ${p.n} <span style="font-size:10px;color:var(--muted)">${p.cur_hp}/${p.hp}</span>${i===cur?' ⚔️':''}</button>`
   }).join('')
-  // 绑定事件
   petSwitchPanel.querySelectorAll('.switch-pet-btn:not([disabled])').forEach(b => {
     b.addEventListener('click', () => {
       const idx = parseInt(b.dataset.idx)
       if (exports.switch_pet(idx)) {
-        setLog(ds(exports.get_last_message()))
-        syncBattleUI()
-        syncFromMoonBit()
-        renderSwitchPanel()
-        if (exports.get_last_player_defeated()) {
-          setTimeout(() => { exports.recover_after_defeat(); syncBattleUI(); exitBattle() }, 1600)
-        }
+        setLog(ds(exports.get_last_message())); syncBattleUI(); syncFromMoonBit(); renderSwitchPanel()
+        if (exports.get_last_player_defeated()) { setTimeout(() => { exports.recover_after_defeat(); syncBattleUI(); exitBattle() }, 1600) }
       }
     })
   })
 }
 
 function handleResult() {
-  syncBattleUI()
-  setLog(ds(exports.get_last_message()))
-  const won = exports.get_last_enemy_defeated()
-  const lost = exports.get_last_player_defeated()
-  const caught = exports.get_last_catch_success()
+  syncBattleUI(); setLog(ds(exports.get_last_message()))
+  const won = exports.get_last_enemy_defeated(), lost = exports.get_last_player_defeated(), caught = exports.get_last_catch_success()
   if (caught || won) {
     if (caught) syncFromMoonBit()
     const max = exports.get_max_pets ? exports.get_max_pets() : 5
-    if (pets.length > max) {
-      showReleasePicker(() => { exitBattle() })
-    } else {
-      setTimeout(exitBattle, 1500)
-    }
+    if (pets.length > max) { showReleasePicker(() => { exitBattle() }) } else { setTimeout(exitBattle, 1500) }
     return
   }
   if (lost) { setTimeout(() => { exports.recover_after_defeat(); syncBattleUI(); exitBattle() }, 1600); return }
@@ -327,55 +243,32 @@ function handleResult() {
 
 function showReleasePicker(onDone) {
   const max = exports.get_max_pets ? exports.get_max_pets() : 5
-  setLog(`队伍已满（${pets.length}/${max}），请选择一只放生的宠物：`)
-  setButtons(false)
-  // 显示选择面板
-  const panel = document.createElement('div')
-  panel.id = 'release-picker'
+  setLog(`队伍已满（${pets.length}/${max}），请选择一只放生的宠物：`); setButtons(false)
+  const panel = document.createElement('div'); panel.id = 'release-picker'
   panel.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;padding:8px 12px;border-bottom:0.5px solid var(--border);'
-  panel.innerHTML = pets.map((p, i) => `
-    <button class="switch-pet-btn release-option" data-idx="${i}">
-      ${p.e} ${p.n} <span style="font-size:10px;color:var(--muted)">HP:${p.cur_hp}/${p.hp} ATK:${p.atk}</span>
-    </button>
-  `).join('')
-  const actions = document.querySelector('.battle-actions')
-  actions.parentNode.insertBefore(panel, actions)
-  // 绑定点击
-  panel.querySelectorAll('.release-option').forEach(b => {
-    b.addEventListener('click', () => {
-      const idx = parseInt(b.dataset.idx)
-      exports.release_pet(idx)
-      syncFromMoonBit()
-      panel.remove()
-      setButtons(true)
-      onDone()
-    })
-  })
+  panel.innerHTML = pets.map((p, i) => `<button class="switch-pet-btn release-option" data-idx="${i}">${p.e} ${p.n} <span style="font-size:10px;color:var(--muted)">HP:${p.cur_hp}/${p.hp} ATK:${p.atk}</span></button>`).join('')
+  const actions = document.querySelector('.battle-actions'); actions.parentNode.insertBefore(panel, actions)
+  panel.querySelectorAll('.release-option').forEach(b => { b.addEventListener('click', () => { exports.release_pet(parseInt(b.dataset.idx)); syncFromMoonBit(); panel.remove(); setButtons(true); onDone() }) })
 }
 
 function exitBattle() {
-  const rp = document.getElementById('release-picker')
-  if (rp) rp.remove()
-  exports.commit_battle()
-  syncFromMoonBit()
+  const rp = document.getElementById('release-picker'); if (rp) rp.remove()
+  exports.commit_battle(); syncFromMoonBit()
   petSwitchPanel.hidden = true
   const bi = $('battle-items'); if (bi) bi.hidden = true
   $('map-items').hidden = false
   battleView.hidden = true; mapView.hidden = false
 }
 
-// ── 10. UI 同步 ────────────────────────────────────────────────────────────
 function syncBattleUI() {
   setHp('player', exports.get_player_hp(), exports.get_player_max_hp())
   setHp('enemy', exports.get_enemy_hp(), exports.get_enemy_max_hp())
-  const enemyEl = ELEMENTS[exports.get_enemy_element()] || '?'
   $('enemy-avatar').textContent = ds(exports.get_enemy_emoji())
-  $('enemy-name').textContent = ds(exports.get_enemy_name()) + ' ' + enemyEl
+  $('enemy-name').textContent = ds(exports.get_enemy_name()) + ' ' + (ELEMENTS[exports.get_enemy_element()] || '?')
   const active = exports.get_active()
   if (pets[active]) {
-    const petEl = ELEMENTS[pets[active].el ?? 4] || '?'
     $('player-avatar').textContent = pets[active].e
-    $('player-name').textContent = pets[active].n + ' ' + petEl
+    $('player-name').textContent = pets[active].n + ' ' + (ELEMENTS[pets[active].el ?? 4] || '?')
   }
   renderSwitchPanel()
 }
@@ -386,15 +279,11 @@ function setHp(who, cur, max) {
   bar.className = 'hp-fill ' + (pct > 50 ? 'green' : pct > 25 ? 'yellow' : 'red')
   $(`${who}-hp-text`).textContent = `${Math.max(0, cur)}/${max}`
 }
-
 function setLog(msg) { battleLog.textContent = msg }
 function setButtons(on) { [btnAttack, btnSkill, btnRun, btnUseHerb, btnUseRevive, btnUseCharm].forEach(b => { if (b) b.disabled = !on }) }
 
 // ── 11. 启动 ───────────────────────────────────────────────────────────────
-renderPetList()
-renderSwitchPanel()
-updateItemCounts()
+renderPetList(); renderSwitchPanel(); updateItemCounts()
 $('map-items').hidden = false
 console.log('✅ 幻兽森林已就绪')
-
 })()

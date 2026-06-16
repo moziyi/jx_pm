@@ -8,6 +8,9 @@ pub fn new_game() -> Unit {
   _state.player_atk     = _starter.atk
   _state.owned         = [_starter]
   _state.active        = 0
+  _inventory.herbs     = _init_inventory.herbs
+  _inventory.revives    = _init_inventory.revives
+  _inventory.charms    = _init_inventory.charms
 }
 
 pub fn start_battle(location_id : Int) -> Unit {
@@ -74,6 +77,32 @@ pub fn release_pet(idx : Int) -> Bool {
 }
 
 pub fn get_active() -> Int { _state.active }
+
+// ── HP 操作 ───────────────────────────────────────────────────────────────
+
+pub fn heal_active(n : Int) -> Unit {
+  let pet = _state.owned[_state.active]
+  pet.cur_hp = if pet.cur_hp + n > pet.hp { pet.hp } else { pet.cur_hp + n }
+}
+
+pub fn hurt_active(n : Int) -> Unit {
+  let pet = _state.owned[_state.active]
+  pet.cur_hp = if pet.cur_hp - n < 1 { 1 } else { pet.cur_hp - n }
+}
+
+pub fn heal_all(n : Int) -> Unit {
+  for i = 0; i < _state.owned.length(); i = i + 1 {
+    let pet = _state.owned[i]
+    pet.cur_hp = if pet.cur_hp + n > pet.hp { pet.hp } else { pet.cur_hp + n }
+  }
+}
+
+pub fn hurt_all(n : Int) -> Unit {
+  for i = 0; i < _state.owned.length(); i = i + 1 {
+    let pet = _state.owned[i]
+    pet.cur_hp = if pet.cur_hp - n < 1 { 1 } else { pet.cur_hp - n }
+  }
+}
 
 // ── 宠物数据 getter ──────────────────────────────────────────────────────
 
