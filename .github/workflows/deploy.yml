@@ -25,14 +25,13 @@ jobs:
           bash -c "$(curl -fsSL https://cli.moonbitlang.com/install/unix.sh)"
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
 
-      - name: Build MoonBit Wasm
-        # 这里指定工作目录为仓库根目录，因为你的项目结构是根目录下的 main/ 和 www/
+      - name: Build and Prepare Wasm
         run: |
-          # 1. 编译 (确保 moon.mod.json 在根目录或指定正确位置)
-          # 如果你的 moon.mod.json 在根目录，直接 build
+          # 1. 编译
+          moon clean
           moon build --target wasm
           
-          # 2. 自动定位 wasm 文件 (递归查找 target 目录)
+          # 2. 自动定位 wasm 文件并拷贝到 www 目录
           WASM_FILE=$(find . -name "*.wasm" | head -n 1)
           
           if [ -z "$WASM_FILE" ]; then
@@ -40,12 +39,17 @@ jobs:
             exit 1
           fi
           
-          # 3. 复制到 www 目录 (作为前端加载的产物)
           cp "$WASM_FILE" ./www/main.wasm
           echo "已成功将 $WASM_FILE 部署至 ./www/main.wasm"
+          
+          # 3. 动态修改 www/main.js 中的 Wasm 加载路径
+          # 将本地绝对路径替换为相对路径 ./main.wasm
+          # 注意：这里的匹配字符串必须和你的 JS 源码完全一致
+          sed -i "s|/_build/wasm/release/build/main/main.wasm|./main.wasm|g" ./www/main.js
+          echo "已完成 JS 路径自动适配"
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./www  # 你的前端代码在 www 目录
+          publish_dir: ./www
