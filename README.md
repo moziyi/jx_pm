@@ -1,141 +1,77 @@
-# 幻兽森林 — MoonBit + WASM 游戏原型
+# 幻兽森林 — MoonBit + WASM 游戏
 
-地图探索 + 回合制战斗 + 捕捉系统。  
-游戏逻辑 100% 在 MoonBit，JS 只做 DOM 渲染（约 150 行）。
+地图探索 + 五行元素 + 回合制战斗 + 道具系统 + 随机事件。  
+游戏逻辑 100% 在 MoonBit，JS 负责 UI、存档、事件分发。
 
 ## 项目结构
 
 ```
-jiuxuan_pm/
-├── CLAUDE.md                  AI 辅助开发指南
-└── projects/
-    ├── moon.mod.json           模块配置
-    ├── main/
-    │   ├── moon.pkg.json       包配置 + 导出列表（wasm / wasm-gc 双目标）
-    │   └── game.mbt            全部游戏逻辑（MoonBit）
-    ├── www/
-    │   ├── index.html          页面结构
-    │   ├── style.css           样式
-    │   └── main.js             JS 胶水层（~150行，无游戏逻辑）
-    └── _build/                 moon build 编译输出（勿手动修改）
-        └── wasm/release/build/main/
-            └── main.wasm       WASM 二进制
+projects/
+├── moon.mod.json           模块配置
+├── main/                   MoonBit 游戏逻辑
+│   ├── moon.pkg.json       包配置 + 导出列表
+│   ├── config.mbt          游戏常量：元素、地点、初始宠物、初始道具
+│   ├── state.mbt           数据结构与全局状态
+│   ├── battle.mbt          战斗逻辑 + 五行克制
+│   ├── items.mbt           道具使用
+│   └── game.mbt            初始化、宠物管理、存档、getter
+├── www/                    JS 前端
+│   ├── config.js           游戏配置（宠物、道具、地点、事件）
+│   ├── storage.js          存档读写
+│   ├── main.js             应用逻辑
+│   ├── index.html          页面结构
+│   └── style.css           样式
+└── _build/                 moon build 编译输出（勿手动修改）
 ```
 
-## 环境准备
+## 快速开始
 
 ```bash
-# 安装 MoonBit 工具链
+# 安装 MoonBit
 curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
 
-# 验证安装
-moon version
-```
-
-## 编译 & 运行
-
-```bash
+# 编译
 cd projects
-
-# 编译 MoonBit → WASM（输出到 _build/wasm/release/build/main/）
 moon build --target wasm --release
 
-# 启动本地服务器（从 projects/ 目录启动，确保 www/ 和 _build/ 都可访问）
+# 启动
 python3 -m http.server 3000
-
-# 打开浏览器（Chrome / Firefox / Safari 均支持）
-open http://localhost:3000/www/
+# 打开 http://localhost:3000/www/
 ```
 
-> **注意**：必须从 `projects/` 目录启动服务器，因为 `www/main.js` 通过绝对路径 `/_build/wasm/...` 加载 WASM，需要 `www/` 和 `_build/` 在同一根目录下。
+> Chrome / Firefox / Safari 均支持。务必从 `projects/` 目录启动服务器。
 
-## 浏览器兼容性
+## 游戏系统
 
-使用 MoonBit 常规 `wasm` 目标（线性内存），**不依赖**任何浏览器专有 API。
+### 五行元素
+金木土水火，克制 1.2x / 被克 0.8x / 相生 0.5x。使用「元素技」触发克制效果。
 
-| 浏览器 | 支持 |
-|--------|------|
-| Chrome | ✅ |
-| Firefox | ✅ |
-| Safari | ✅ |
-| Edge | ✅ |
+### 宠物
+- 初始宠物「小幽」🔥火元素，最多携带 5 只
+- 战斗中可切换上场宠物（消耗 1 回合）
+- HP=0 的宠物无法出战
+- 支持改名、放生
 
-## MoonBit ↔ JS 通信模式
+### 道具
+| 道具 | 效果 | 场景 |
+|------|------|------|
+| 🧪 药草 | 恢复 20 HP | 地图/战斗 |
+| 🌿 醒神草 | 复苏倒下宠物，恢复 50% HP | 地图/战斗 |
+| 🔮 幻兽符 | 40% 固定捕捉率（替代普通捕捉） | 仅战斗 |
 
-MoonBit wasm 目标无法直接返回结构体给 JS，因此采用**全局结果 + getter + 字符串解码**模式：
+初始持有: 药草 x3, 醒神草 x1, 幻兽符 x2。战斗中消耗 1 回合。
 
-```
-JS 调用 MoonBit（行动函数）     MoonBit 把结果写入全局 _result
-─────────────────────────────────────────────────────────────
-exports.player_attack()    →   _result.message = "..."
-                               _result.damage_dealt = 34
-                               ...
+### 地图事件
+点击地图标记触发随机事件（每个地点 5 种）：
+- 遭遇敌人（战斗）
+- 捡到道具
+- 宠物恢复 / 受伤
 
-JS 读取结果（getter）
-─────────────────────────────────────────────────────────────
-exports.get_last_message()         → Int (WASM 内存指针)
-exports.get_last_damage_dealt()    → Int
-exports.get_last_enemy_defeated()  → Bool
-...
-```
+事件配置在 `www/config.js` → `EVENTS`，可自由编辑。
 
-String 类型返回值是 WASM 线性内存中的指针。MoonBit 以 UTF-16LE 格式存储，指针前 4 字节（低 16 位）存放字符串长度。JS 侧通过 `decodeString(ptr)` 解码：
+## 修改游戏内容
 
-```js
-function decodeString(ptr) {
-  const len = new DataView(mem.buffer).getUint32(ptr - 4, true) & 0xffff
-  return new TextDecoder('utf-16le').decode(mem.slice(ptr, ptr + len * 2))
-}
-```
-
-## 核心文件说明
-
-### main/game.mbt
-
-| 函数 | 说明 |
-|------|------|
-| `new_game()` | 初始化 / 重置游戏状态 |
-| `start_battle(id)` | 根据地点 ID 设置敌人数据 |
-| `player_attack()` | 计算玩家攻击 + 敌方反击，写入 _result |
-| `try_catch()` | 计算捕捉概率，写入 _result |
-| `run_away()` | 逃跑，写入 _result |
-| `recover_after_defeat()` | 玩家倒下后恢复 HP |
-| `get_*` | 各种状态 getter |
-
-JS 导入采用 `"module" "function"` 语法：
-
-```moonbit
-fn math_random() -> Double = "env" "math_random"
-```
-
-### main/moon.pkg.json
-
-- `link.wasm.exports` — 控制哪些函数对 JS 可见
-- `export-memory-name: "memory"` — 导出线性内存供 JS 读取字符串
-- 同时配置了 `wasm-gc` 目标（`use-js-builtin-string: true`）作为备选，但该目标仅 Chrome/Edge 可用
-
-## 捕捉概率
-
-| 敌人血量比例 | 捕捉成功率 |
-|------------|----------|
-| > 50%      | 15%      |
-| 25% ~ 50%  | 45%      |
-| < 25%      | 75%      |
-
-## 扩展方向
-
-**加新地点**：在 `game.mbt` 的 `get_location()` 加一行 match 分支，并在 `index.html` 中添加对应 `data-id` 的标记按钮
-
-```moonbit
-5 => { name: "火山熔岩", emoji: "🌋", hp: 60, atk: 18 }
-```
-
-**改伤害公式**：修改 `roll_damage()`
-
-**加技能**：给 `player_attack` 加参数
-
-```moonbit
-pub fn player_attack(skill_id : Int) -> Unit { ... }
-```
-
-**存档**：在 JS 侧把 `get_captured_count()` 等序列化到 `localStorage`
+- **加新地点/敌人**：修改 `config.mbt` 和 `config.js`
+- **改初始宠物**：修改 `config.mbt` 的 `_starter`
+- **改道具配置**：修改 `config.js` 的 `INITIAL_ITEMS`
+- **加新事件**：修改 `config.js` 的 `EVENTS`
