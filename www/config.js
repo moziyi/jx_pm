@@ -13,6 +13,13 @@ export const LOCATIONS = {
   4: { name: '月影湖泊', enemy: '月影水灵', emoji: '💧', hp: 32, atk: 7, el: 3 },
 }
 
+// 特殊事件类型
+export const SPECIAL_EVENTS = {
+  1: { name: '宝藏', emoji: '💎', cls: 'm-treasure', desc: '发现了宝藏！' },
+  2: { name: '稀有敌人', emoji: '⭐', cls: 'm-rare', desc: '强大的敌人出现了！' },
+  3: { name: '神秘商人', emoji: '🧙', cls: 'm-merchant', desc: '神秘商人路过…' },
+}
+
 // type: 'item' | 'heal_active' | 'heal_all' | 'hurt_active' | 'hurt_all' | 'battle'
 export const EVENTS = {
   // 幽暗森林

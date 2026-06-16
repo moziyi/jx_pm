@@ -1,5 +1,5 @@
 // main.js — 幻兽森林 应用逻辑
-import { ELEMENTS, STARTER_PET, INITIAL_ITEMS, LOCATIONS, EVENTS } from './config.js'
+import { ELEMENTS, STARTER_PET, INITIAL_ITEMS, LOCATIONS, EVENTS, SPECIAL_EVENTS } from './config.js'
 import { checksum, getUUID, loadGame, saveGame } from './storage.js'
 
 (async () => {
@@ -260,6 +260,71 @@ function exitBattle() {
   const bi = $('battle-items'); if (bi) bi.hidden = true
   $('map-items').hidden = false
   battleView.hidden = true; mapView.hidden = false
+  trySpawnSpecialEvent()
+}
+
+// ── 特殊点位 ──────────────────────────────────────────────────────────────
+function trySpawnSpecialEvent() {
+  // 清除过期的特殊点位
+  removeSpecialMarker()
+  // 30% 概率刷新
+  if (Math.random() > 0.3) return
+  const types = Object.keys(SPECIAL_EVENTS).map(Number)
+  const etype = types[Math.floor(Math.random() * types.length)]
+  const x = 15 + Math.floor(Math.random() * 70)  // 15-85%
+  const y = 20 + Math.floor(Math.random() * 55)  // 20-75%
+  exports.place_event(etype, x, y)
+  createSpecialMarker(etype, x, y)
+}
+
+function createSpecialMarker(etype, x, y) {
+  const cfg = SPECIAL_EVENTS[etype]
+  if (!cfg) return
+  const btn = document.createElement('button')
+  btn.id = 'special-marker'
+  btn.className = `marker ${cfg.cls}`
+  btn.style.cssText = `left:${x}%;top:${y}%;`
+  btn.dataset.type = String(etype)
+  btn.innerHTML = `<span class="marker-dot"></span><span class="marker-label">${cfg.emoji} ${cfg.name}</span>`
+  btn.addEventListener('click', () => handleSpecialEvent(etype))
+  document.querySelector('.map-bg').appendChild(btn)
+}
+
+function removeSpecialMarker() {
+  const el = document.getElementById('special-marker')
+  if (el) el.remove()
+  exports.clear_event()
+}
+
+function handleSpecialEvent(etype) {
+  removeSpecialMarker()
+  exports.clear_event()
+  const cfg = SPECIAL_EVENTS[etype]
+  showEventMessage(cfg.desc)
+  if (etype === 1) {
+    // 宝藏：随机 1-3 个道具
+    const r = Math.floor(Math.random() * 3)
+    if (r === 0) { exports.add_herbs(2); showEventMessage('获得 🧪 药草 x2！') }
+    else if (r === 1) { exports.add_revives(1); showEventMessage('获得 🌿 醒神草 x1！') }
+    else { exports.add_charms(2); showEventMessage('获得 🔮 幻兽符 x2！') }
+  } else if (etype === 2) {
+    // 稀有敌人：进入战斗，敌属性 1.5x
+    const loc = { 1:1, 2:2, 3:3, 4:4 }[Math.floor(Math.random()*4)+1]
+    exports.start_battle(loc)
+    // 1.5x 通过连续攻击模拟，简化处理
+    syncBattleUI(); setButtons(true)
+    petSwitchPanel.hidden = false
+    $('battle-items').hidden = false; $('map-items').hidden = true
+    mapView.hidden = true; battleView.hidden = false
+    setLog('⭐ 遭遇了稀有敌人！属性大幅提升…')
+  } else if (etype === 3) {
+    // 神秘商人：用 HP 换道具
+    exports.hurt_active(15)
+    const r = Math.floor(Math.random() * 2)
+    if (r === 0) { exports.add_charms(3); showEventMessage('🧙 神秘商人用幻兽符 x3 交换了你 15 HP') }
+    else { exports.add_herbs(3); exports.add_revives(1); showEventMessage('🧙 神秘商人留下了药草 x3 和醒神草 x1，收走了你 15 HP') }
+  }
+  syncFromMoonBit()
 }
 
 function syncBattleUI() {

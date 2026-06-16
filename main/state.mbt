@@ -73,3 +73,12 @@ let _result : LastResult = {
 }
 
 let _inventory : Inventory = { herbs: 3, revives: 1, charms: 2 }
+
+// 特殊事件点位
+priv struct SpecialEvent {
+  mut active : Bool
+  mut etype  : Int
+  mut x      : Int
+  mut y      : Int
+}
+let _special : SpecialEvent = { active: false, etype: 0, x: 0, y: 0 }

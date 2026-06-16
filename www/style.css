@@ -101,6 +101,13 @@ body {
 .m-lake   .marker-dot { background: #378add; }
 .m-lake   .marker-dot::after { border-color: #378add; }
 
+.m-treasure .marker-dot { background: #f0c040; border-color: #f0c040; }
+.m-treasure .marker-dot::after { border-color: #f0c040; animation-duration: 1.2s; }
+.m-rare .marker-dot { background: #E24B4A; border-color: #E24B4A; }
+.m-rare .marker-dot::after { border-color: #E24B4A; animation-duration: 1s; }
+.m-merchant .marker-dot { background: #a855f7; border-color: #a855f7; }
+.m-merchant .marker-dot::after { border-color: #a855f7; animation-duration: 1.5s; }
+
 .marker-label {
   font-size: 10px;
   font-weight: 500;
