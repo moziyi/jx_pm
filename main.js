@@ -4,7 +4,7 @@ import { checksum, getUUID, loadGame, saveGame } from './storage.js'
 
 (async () => {
 
-const wasmUrl = '/_build/wasm/release/build/main/main.wasm'
+const wasmUrl = './main.wasm'
 let exports, mem, pets = []
 
 // ── 1. WASM 加载 ───────────────────────────────────────────────────────────
