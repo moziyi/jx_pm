@@ -221,7 +221,9 @@ function renderSwitchPanel() {
     b.addEventListener('click', () => {
       const idx = parseInt(b.dataset.idx)
       if (exports.switch_pet(idx)) {
-        setLog(ds(exports.get_last_message())); syncBattleUI(); syncFromMoonBit(); renderSwitchPanel()
+        const taken = exports.get_last_damage_taken()
+        setLog(`换上了 ${pets[idx].e} ${pets[idx].n}！受到 ${taken} 点反击。`)
+        syncBattleUI(); syncFromMoonBit(); renderSwitchPanel()
         if (exports.get_last_player_defeated()) { setTimeout(() => { exports.recover_after_defeat(); syncBattleUI(); exitBattle() }, 1600) }
       }
     })
