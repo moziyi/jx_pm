@@ -49,8 +49,16 @@ fn type_multiplier(atk : Element, def : Element) -> Double {
 fn enemy_attack_raw() -> Int {
   let raw  = roll_damage(_state.enemy_atk, 4)
   let mult = type_multiplier(_state.enemy_element, _state.owned[_state.active].element)
-  let d = (raw.to_double() * mult).to_int()
-  if d < 1 { 1 } else { d }
+  if mult < 0.9 && mult > 0.4 {
+    // 相生：治疗玩家
+    let heal = (raw.to_double() * mult).to_int()
+    let pet = _state.owned[_state.active]
+    _state.player_hp = if _state.player_hp + heal > pet.hp { pet.hp } else { _state.player_hp + heal }
+    0  // 无伤害
+  } else {
+    let d = (raw.to_double() * mult).to_int()
+    if d < 1 { 1 } else { d }
+  }
 }
 
 fn enemy_counter_attack() -> Int {
@@ -88,20 +96,32 @@ pub fn elemental_skill() -> Unit {
   let base  = (pet.atk.to_double() * 1.3).to_int()
   let raw   = roll_damage(base, 8)
   let mult  = type_multiplier(pet.element, _state.enemy_element)
-  let dealt = (raw.to_double() * mult).to_int()
-  let dmg   = if dealt < 1 { 1 } else { dealt }
-  _state.enemy_hp = clamp_min(_state.enemy_hp - dmg, 0)
+  let is_heal = mult < 0.9 && mult > 0.4
+  let dmg = if is_heal {
+    0
+  } else {
+    let d = (raw.to_double() * mult).to_int()
+    if d < 1 { 1 } else { d }
+  }
+  let heal = if is_heal { (raw.to_double() * mult).to_int() } else { 0 }
+  if is_heal {
+    _state.enemy_hp = if _state.enemy_hp + heal > _state.enemy_max_hp { _state.enemy_max_hp } else { _state.enemy_hp + heal }
+  } else {
+    _state.enemy_hp = clamp_min(_state.enemy_hp - dmg, 0)
+  }
   let enemy_defeated = _state.enemy_hp <= 0
   let taken = if enemy_defeated { 0 } else { enemy_counter_attack() }
   let player_defeated = _state.player_hp <= 0
-  _result.damage_dealt    = dmg
+  _result.damage_dealt    = if is_heal { 0 } else { dmg }
   _result.damage_taken    = taken
   _result.catch_success   = false
   _result.catch_rate      = 0.0
   _result.enemy_defeated  = enemy_defeated
   _result.player_defeated = player_defeated
   _result.message =
-    if enemy_defeated {
+    if is_heal {
+      "元素技为 \{_state.enemy_name} 恢复了 \{heal} HP…受到 \{taken} 点反击。"
+    } else if enemy_defeated {
       "元素技造成 \{dmg} 点伤害！\{_state.enemy_name} 被击败了！"
     } else if player_defeated {
       "元素技造成 \{dmg} 点伤害，但受到 \{taken} 点反击。\{pet.name} 倒下了…"
