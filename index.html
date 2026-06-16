@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>幻兽森林</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ── 地图界面 ── -->
+  <div id="map-view">
+    <div class="hud">
+      <div class="hud-title">🗺 幻兽森林</div>
+      <div class="hud-right">
+        出战：<span id="active-pet">🧚 小幽</span> | 已捕捉：<span id="caught-count">1</span>/<span id="max-pets">5</span> 只
+      </div>
+    </div>
+
+    <div class="map-bg">
+      <canvas id="map-canvas"></canvas>
+
+      <!-- data-id 对应 MoonBit 的 location_id -->
+      <button class="marker m-forest" style="left:28%;top:38%" data-id="1">
+        <span class="marker-dot"></span>
+        <span class="marker-label">幽暗森林</span>
+      </button>
+      <button class="marker m-cave" style="left:62%;top:25%" data-id="2">
+        <span class="marker-dot"></span>
+        <span class="marker-label">水晶矿洞</span>
+      </button>
+      <button class="marker m-ruins" style="left:75%;top:65%" data-id="3">
+        <span class="marker-dot"></span>
+        <span class="marker-label">古代神殿</span>
+      </button>
+      <button class="marker m-lake" style="left:33%;top:70%" data-id="4">
+        <span class="marker-dot"></span>
+        <span class="marker-label">月影湖泊</span>
+      </button>
+    </div>
+
+    <p class="hint">点击地图上的光点进入战斗</p>
+
+    <div class="captured-section">
+      <div class="section-label">已捕捉</div>
+      <div id="captured-list" class="captured-list">
+        <span class="empty-tip">还没有捕捉到任何生物</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 战斗界面 ── -->
+  <div id="battle-view" hidden>
+    <div class="battle-scene">
+      <div class="entity">
+        <div class="avatar" id="player-avatar">🧙</div>
+        <div class="entity-name" id="player-name">小幽</div>
+        <div class="hp-wrap">
+          <div class="hp-label">
+            <span>HP</span>
+            <span id="player-hp-text">35/35</span>
+          </div>
+          <div class="hp-track">
+            <div id="player-hp-bar" class="hp-fill green" style="width:100%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="vs">VS</div>
+
+      <div class="entity">
+        <div class="avatar" id="enemy-avatar">❓</div>
+        <div class="entity-name" id="enemy-name">???</div>
+        <div class="hp-wrap">
+          <div class="hp-label">
+            <span>HP</span>
+            <span id="enemy-hp-text">?/?</span>
+          </div>
+          <div class="hp-track">
+            <div id="enemy-hp-bar" class="hp-fill green" style="width:100%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="battle-log" class="battle-log">战斗开始！</div>
+
+    <div id="pet-switch" class="pet-switch" hidden></div>
+
+    <div class="battle-actions">
+      <button id="btn-attack" class="action-btn">
+        <span class="btn-icon">⚔️</span>
+        <span class="btn-text">攻击</span>
+        <span class="btn-sub">物理伤害</span>
+      </button>
+      <button id="btn-skill" class="action-btn btn-skill">
+        <span class="btn-icon">✨</span>
+        <span class="btn-text">元素技</span>
+        <span class="btn-sub">五行克制</span>
+      </button>
+      <button id="btn-charm" class="action-btn btn-catch">
+        <span class="btn-icon">🔮</span>
+        <span class="btn-text">幻兽符</span>
+        <span class="btn-sub" id="charm-count">x2</span>
+      </button>
+      <button id="btn-run" class="action-btn btn-run">
+        <span class="btn-icon">💨</span>
+        <span class="btn-text">逃跑</span>
+        <span class="btn-sub">返回地图</span>
+      </button>
+    </div>
+
+    <div id="battle-items" class="battle-items" hidden>
+      <button id="btn-herb" class="item-btn">🧪<span>药草</span><span class="item-count" id="herb-count">x3</span></button>
+      <button id="btn-revive" class="item-btn">🌿<span>醒神草</span><span class="item-count" id="revive-count">x1</span></button>
+    </div>
+  </div>
+
+  <!-- ── 地图道具栏 ── -->
+  <div id="map-items" class="map-items">
+    <button id="map-herb" class="item-btn">🧪<span>药草</span><span class="item-count" id="map-herb-count">x3</span></button>
+    <button id="map-revive" class="item-btn">🌿<span>醒神草</span><span class="item-count" id="map-revive-count">x1</span></button>
+  </div>
+
+</div>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>
