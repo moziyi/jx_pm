@@ -54,47 +54,51 @@ function loadPets() {
       const data = lines.slice(dataStart).join('\n')
       if (String(checksum(data)) !== lines[1]) { console.warn('存档校验失败'); return null }
     } else return null
+    const n = ver >= 4 ? 7 : 6
     const r = []
-    for (let i = dataStart; i + 5 < lines.length; i += 6) {
-      r.push({ n: lines[i], e: lines[i+1], hp: parseInt(lines[i+2]), atk: parseInt(lines[i+3]), lv: parseInt(lines[i+4]), cur_hp: parseInt(lines[i+5]) })
+    for (let i = dataStart; i + n - 1 < lines.length; i += n) {
+      r.push({
+        n: lines[i], e: lines[i+1],
+        hp: parseInt(lines[i+2]), atk: parseInt(lines[i+3]),
+        lv: parseInt(lines[i+4]), cur_hp: parseInt(lines[i+5]),
+        el: ver >= 4 ? (parseInt(lines[i+6]) || 0) : 4  // v3默认火
+      })
     }
     return { uuid, active, pets: r }
   } catch { return null }
 }
 
 function savePets() {
-  const data = `${getUUID()}\n${exports.get_active()}\n` + pets.map(p => `${p.n}\n${p.e}\n${p.hp}\n${p.atk}\n${p.lv}\n${p.cur_hp}`).join('\n') + '\n'
-  localStorage.setItem(SAVE_KEY, `3\n${checksum(data)}\n${data}`)
+  const data = `${getUUID()}\n${exports.get_active()}\n` + pets.map(p => `${p.n}\n${p.e}\n${p.hp}\n${p.atk}\n${p.lv}\n${p.cur_hp}\n${p.el ?? 4}`).join('\n') + '\n'
+  localStorage.setItem(SAVE_KEY, `4\n${checksum(data)}\n${data}`)
 }
 
 // ── 4. 初始化 ──────────────────────────────────────────────────────────────
 const saved = loadPets()
 if (saved && saved.pets.length > 0) {
   exports.clear_pets()
-  for (const p of saved.pets) exports.add_pet(p.hp, p.atk, p.cur_hp)
+  for (const p of saved.pets) exports.add_pet(p.hp, p.atk, p.cur_hp, p.el ?? 4)
   exports.set_active(saved.active)
   pets = saved.pets
 } else {
   exports.new_game()
   const n = exports.get_owned_count()
   for (let i = 0; i < n; i++) {
-    pets.push({ n: ds(exports.get_owned_name(i)), e: ds(exports.get_owned_emoji(i)), hp: exports.get_owned_hp(i), atk: exports.get_owned_atk(i), lv: exports.get_owned_lv(i), cur_hp: exports.get_owned_cur_hp(i) })
+    pets.push({ n: ds(exports.get_owned_name(i)), e: ds(exports.get_owned_emoji(i)), hp: exports.get_owned_hp(i), atk: exports.get_owned_atk(i), lv: exports.get_owned_lv(i), cur_hp: exports.get_owned_cur_hp(i), el: exports.get_owned_element(i) })
   }
   savePets()
 }
 
 function syncPetsFromMoonBit() {
   const count = exports.get_owned_count()
-  // 保留已有名字/表情（add_pet 创建的名为"未知"），只更新数值
   for (let i = 0; i < count; i++) {
     if (i >= pets.length) {
-      // 新捕获的宠物，从 MoonBit 读取完整信息
-      pets.push({ n: ds(exports.get_owned_name(i)), e: ds(exports.get_owned_emoji(i)), hp: exports.get_owned_hp(i), atk: exports.get_owned_atk(i), lv: exports.get_owned_lv(i), cur_hp: exports.get_owned_cur_hp(i) })
+      pets.push({ n: ds(exports.get_owned_name(i)), e: ds(exports.get_owned_emoji(i)), hp: exports.get_owned_hp(i), atk: exports.get_owned_atk(i), lv: exports.get_owned_lv(i), cur_hp: exports.get_owned_cur_hp(i), el: exports.get_owned_element(i) })
     } else {
-      // 已有宠物，只更新可变数值
       pets[i].hp = exports.get_owned_hp(i)
       pets[i].atk = exports.get_owned_atk(i)
       pets[i].cur_hp = exports.get_owned_cur_hp(i)
+      pets[i].el = exports.get_owned_element(i)
     }
   }
   pets.length = count
@@ -106,7 +110,7 @@ function syncPetsFromMoonBit() {
 const $ = (id) => document.getElementById(id)
 const mapView = $('map-view'), battleView = $('battle-view'), battleLog = $('battle-log')
 const capturedList = $('captured-list'), caughtCount = $('caught-count')
-const btnAttack = $('btn-attack'), btnCatch = $('btn-catch'), btnRun = $('btn-run')
+const btnAttack = $('btn-attack'), btnSkill = $('btn-skill'), btnCatch = $('btn-catch'), btnRun = $('btn-run')
 const petSwitchPanel = $('pet-switch')
 const activePetInfo = $('active-pet')
 
@@ -126,7 +130,10 @@ function drawMap() {
 requestAnimationFrame(() => { drawMap(); console.log('Map drawn') })
 window.addEventListener('resize', drawMap)
 
-// ── 7. 宠物列表 UI ─────────────────────────────────────────────────────────
+// ── 7. 元素 ────────────────────────────────────────────────────────────────
+const ELEMENTS = ['金','木','土','水','火']
+
+// ── 8. 宠物列表 UI ─────────────────────────────────────────────────────────
 function renderPetList() {
   const max = exports.get_max_pets ? exports.get_max_pets() : 5
   $('max-pets').textContent = max
@@ -139,8 +146,10 @@ function renderPetList() {
   if (pets.length === 0) { capturedList.innerHTML = '<span class="empty-tip">还没有宠物</span>'; return }
   capturedList.innerHTML = pets.map((p, i) => {
     const isActive = i === active
-    return `<span class="captured-tag${isActive ? ' active-pet' : ''}" data-idx="${i}" title="HP:${p.cur_hp}/${p.hp} ATK:${p.atk} LV:${p.lv}${isActive ? ' ⚔️出战中' : ''}">
+    const el = ELEMENTS[p.el ?? 4] || '?'
+    return `<span class="captured-tag${isActive ? ' active-pet' : ''}" data-idx="${i}" title="HP:${p.cur_hp}/${p.hp} ATK:${p.atk} 元素:${el}${isActive ? ' ⚔️出战中' : ''}">
       <span class="tag-emoji">${p.e}</span><span class="tag-name">${p.n}</span>
+      <span class="tag-element">${el}</span>
       <span class="tag-stats">${p.cur_hp}/${p.hp}</span>
     </span>`
   }).join('')
@@ -207,6 +216,7 @@ document.querySelectorAll('.marker').forEach(btn => {
 
 // ── 9. 战斗按钮 ────────────────────────────────────────────────────────────
 btnAttack.addEventListener('click', () => { setButtons(false); exports.player_attack(); handleResult() })
+if (btnSkill) btnSkill.addEventListener('click', () => { setButtons(false); exports.elemental_skill(); handleResult() })
 btnCatch.addEventListener('click', () => { setButtons(false); exports.try_catch(); handleResult() })
 btnRun.addEventListener('click', () => { setButtons(false); exports.run_away(); setLog(ds(exports.get_last_message())); setTimeout(exitBattle, 900) })
 
@@ -297,12 +307,14 @@ function exitBattle() {
 function syncBattleUI() {
   setHp('player', exports.get_player_hp(), exports.get_player_max_hp())
   setHp('enemy', exports.get_enemy_hp(), exports.get_enemy_max_hp())
+  const enemyEl = ELEMENTS[exports.get_enemy_element()] || '?'
   $('enemy-avatar').textContent = ds(exports.get_enemy_emoji())
-  $('enemy-name').textContent = ds(exports.get_enemy_name())
+  $('enemy-name').textContent = ds(exports.get_enemy_name()) + ' ' + enemyEl
   const active = exports.get_active()
   if (pets[active]) {
+    const petEl = ELEMENTS[pets[active].el ?? 4] || '?'
     $('player-avatar').textContent = pets[active].e
-    $('player-name').textContent = pets[active].n
+    $('player-name').textContent = pets[active].n + ' ' + petEl
   }
   renderSwitchPanel()
 }
@@ -315,7 +327,7 @@ function setHp(who, cur, max) {
 }
 
 function setLog(msg) { battleLog.textContent = msg }
-function setButtons(on) { [btnAttack, btnCatch, btnRun].forEach(b => b.disabled = !on) }
+function setButtons(on) { [btnAttack, btnSkill, btnCatch, btnRun].forEach(b => { if (b) b.disabled = !on }) }
 
 // ── 11. 启动 ───────────────────────────────────────────────────────────────
 renderPetList()

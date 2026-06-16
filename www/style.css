@@ -255,7 +255,7 @@ body {
 /* 行动按钮 */
 .battle-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 8px;
   padding: 12px;
 }
@@ -282,3 +282,10 @@ body {
 
 .btn-catch { border-color: rgba(55,138,221,0.5) !important; }
 .btn-catch .btn-text { color: #7ab8f0; }
+.btn-skill { border-color: rgba(239,159,39,0.5) !important; }
+.btn-skill .btn-text { color: #EF9F27; }
+
+.tag-element {
+  font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 4px;
+  background: rgba(239,159,39,0.2); color: #EF9F27;
+}

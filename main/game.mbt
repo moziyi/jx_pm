@@ -12,11 +12,12 @@ pub fn new_game() -> Unit {
 
 pub fn start_battle(location_id : Int) -> Unit {
   let cfg = get_location(location_id)
-  _state.enemy_name   = cfg.name
-  _state.enemy_emoji  = cfg.emoji
-  _state.enemy_hp     = cfg.hp
-  _state.enemy_max_hp = cfg.hp
-  _state.enemy_atk    = cfg.atk
+  _state.enemy_name    = cfg.name
+  _state.enemy_emoji   = cfg.emoji
+  _state.enemy_hp      = cfg.hp
+  _state.enemy_max_hp  = cfg.hp
+  _state.enemy_atk     = cfg.atk
+  _state.enemy_element = cfg.element
   let pet = _state.owned[_state.active]
   _state.player_hp     = pet.cur_hp
   _state.player_max_hp = pet.hp
@@ -41,9 +42,9 @@ pub fn clear_pets() -> Unit {
   _state.owned = []
 }
 
-pub fn add_pet(hp : Int, atk : Int, cur_hp : Int) -> Int {
+pub fn add_pet(hp : Int, atk : Int, cur_hp : Int, element : Int) -> Int {
   let idx = _state.owned.length()
-  _state.owned.push({ name: "未知", emoji: "❓", hp: hp, atk: atk, lv: 1, cur_hp: cur_hp })
+  _state.owned.push({ name: "未知", emoji: "❓", hp: hp, atk: atk, lv: 1, cur_hp: cur_hp, element: int_to_element(element) })
   idx
 }
 
@@ -96,12 +97,15 @@ pub fn get_owned_lv(i : Int) -> Int {
 pub fn get_owned_cur_hp(i : Int) -> Int {
   if i >= 0 && i < _state.owned.length() { _state.owned[i].cur_hp } else { 0 }
 }
+pub fn get_owned_element(i : Int) -> Int {
+  if i >= 0 && i < _state.owned.length() { element_to_int(_state.owned[i].element) } else { 0 }
+}
 
 // ── 存档导出 ──────────────────────────────────────────────────────────────
 
 pub fn export_save() -> String {
   let count = _state.owned.length()
-  let lines = "3\n"
+  let lines = "4\n"
   let mut data = _state.active.to_string() + "\n"
   for i = 0; i < count; i = i + 1 {
     data = data + _state.owned[i].name + "\n"
@@ -110,6 +114,7 @@ pub fn export_save() -> String {
     data = data + _state.owned[i].atk.to_string() + "\n"
     data = data + _state.owned[i].lv.to_string() + "\n"
     data = data + _state.owned[i].cur_hp.to_string() + "\n"
+    data = data + element_to_int(_state.owned[i].element).to_string() + "\n"
   }
   let checksum = calc_checksum(data)
   lines + checksum.to_string() + "\n" + data

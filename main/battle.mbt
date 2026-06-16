@@ -1,4 +1,4 @@
-// battle.mbt — 战斗逻辑
+// battle.mbt — 战斗逻辑、五行克制、元素技能
 
 fn roll_damage(base : Int, variance : Int) -> Int {
   let mult  = 0.85 + math_random() * 0.30
@@ -24,8 +24,37 @@ fn roll_stat(base : Int) -> Int {
   if v < 1 { 1 } else { v }
 }
 
+// 五行倍率: 克制 1.2 / 被克 0.8 / 相生 0.5 / 其他 1.0
+fn type_multiplier(atk : Element, def : Element) -> Double {
+  match (atk, def) {
+    (Metal, Wood) => 1.2
+    (Wood, Earth) => 1.2
+    (Earth, Water) => 1.2
+    (Water, Fire) => 1.2
+    (Fire, Metal) => 1.2
+    (Wood, Metal) => 0.8
+    (Earth, Wood) => 0.8
+    (Water, Earth) => 0.8
+    (Fire, Water) => 0.8
+    (Metal, Fire) => 0.8
+    (Metal, Water) => 0.5
+    (Water, Wood) => 0.5
+    (Wood, Fire) => 0.5
+    (Fire, Earth) => 0.5
+    (Earth, Metal) => 0.5
+    _ => 1.0
+  }
+}
+
+fn enemy_attack_raw() -> Int {
+  let raw  = roll_damage(_state.enemy_atk, 4)
+  let mult = type_multiplier(_state.enemy_element, _state.owned[_state.active].element)
+  let d = (raw.to_double() * mult).to_int()
+  if d < 1 { 1 } else { d }
+}
+
 fn enemy_counter_attack() -> Int {
-  let d = roll_damage(_state.enemy_atk, 4)
+  let d = enemy_attack_raw()
   _state.player_hp = clamp_min(_state.player_hp - d, 0)
   d
 }
@@ -36,10 +65,8 @@ pub fn player_attack() -> Unit {
   let dealt = roll_damage(_state.player_atk, 6)
   _state.enemy_hp = clamp_min(_state.enemy_hp - dealt, 0)
   let enemy_defeated = _state.enemy_hp <= 0
-
   let taken = if enemy_defeated { 0 } else { enemy_counter_attack() }
   let player_defeated = _state.player_hp <= 0
-
   _result.damage_dealt    = dealt
   _result.damage_taken    = taken
   _result.catch_success   = false
@@ -56,30 +83,51 @@ pub fn player_attack() -> Unit {
     }
 }
 
-let max_pets : Int = 5
-
-pub fn get_max_pets() -> Int { max_pets }
+pub fn elemental_skill() -> Unit {
+  let pet   = _state.owned[_state.active]
+  let base  = (pet.atk.to_double() * 1.3).to_int()
+  let raw   = roll_damage(base, 8)
+  let mult  = type_multiplier(pet.element, _state.enemy_element)
+  let dealt = (raw.to_double() * mult).to_int()
+  let dmg   = if dealt < 1 { 1 } else { dealt }
+  _state.enemy_hp = clamp_min(_state.enemy_hp - dmg, 0)
+  let enemy_defeated = _state.enemy_hp <= 0
+  let taken = if enemy_defeated { 0 } else { enemy_counter_attack() }
+  let player_defeated = _state.player_hp <= 0
+  _result.damage_dealt    = dmg
+  _result.damage_taken    = taken
+  _result.catch_success   = false
+  _result.catch_rate      = 0.0
+  _result.enemy_defeated  = enemy_defeated
+  _result.player_defeated = player_defeated
+  _result.message =
+    if enemy_defeated {
+      "元素技造成 \{dmg} 点伤害！\{_state.enemy_name} 被击败了！"
+    } else if player_defeated {
+      "元素技造成 \{dmg} 点伤害，但受到 \{taken} 点反击。\{pet.name} 倒下了…"
+    } else {
+      "元素技造成 \{dmg} 点伤害，受到 \{taken} 点反击。敌人还剩 \{_state.enemy_hp} HP。"
+    }
+}
 
 pub fn try_catch() -> Unit {
   let rate    = calc_catch_rate()
   let pct     = (rate * 100.0).to_int()
   let success = math_random() < rate
-
   if success {
     let hp = roll_stat(_state.enemy_max_hp)
     _state.owned.push({
-      name:   _state.enemy_name,
-      emoji:  _state.enemy_emoji,
-      hp:     hp,
-      atk:    roll_stat(_state.enemy_atk),
-      lv:     1,
-      cur_hp: hp,
+      name:    _state.enemy_name,
+      emoji:   _state.enemy_emoji,
+      hp:      hp,
+      atk:     roll_stat(_state.enemy_atk),
+      lv:      1,
+      cur_hp:  hp,
+      element: _state.enemy_element,
     })
   }
-
   let taken = if success { 0 } else { enemy_counter_attack() }
   let player_defeated = _state.player_hp <= 0
-
   _result.damage_dealt    = 0
   _result.damage_taken    = taken
   _result.catch_success   = success
@@ -96,19 +144,15 @@ pub fn try_catch() -> Unit {
     }
 }
 
-/// 战斗中切换宠物，消耗 1 回合（敌方会反击）
 pub fn switch_pet(idx : Int) -> Bool {
   if idx < 0 || idx >= _state.owned.length() { return false }
   if _state.owned[idx].cur_hp <= 0 { return false }
   if idx == _state.active { return false }
-  // 保存当前宠物 HP
   _state.owned[_state.active].cur_hp = _state.player_hp
-  // 切换
   _state.active = idx
   _state.player_hp     = _state.owned[idx].cur_hp
   _state.player_max_hp = _state.owned[idx].hp
   _state.player_atk     = _state.owned[idx].atk
-  // 消耗回合：敌方反击
   let taken = enemy_counter_attack()
   let player_defeated = _state.player_hp <= 0
   _result.damage_dealt    = 0
@@ -130,3 +174,9 @@ pub fn run_away() -> Unit {
   _result.player_defeated = false
   _result.message         = "成功逃跑了！"
 }
+
+pub fn get_player_element() -> Int { element_to_int(_state.owned[_state.active].element) }
+pub fn get_enemy_element()  -> Int { element_to_int(_state.enemy_element) }
+
+let max_pets : Int = 5
+pub fn get_max_pets() -> Int { max_pets }
