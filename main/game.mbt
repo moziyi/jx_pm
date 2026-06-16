@@ -105,8 +105,11 @@ pub fn get_owned_element(i : Int) -> Int {
 
 pub fn export_save() -> String {
   let count = _state.owned.length()
-  let lines = "4\n"
+  let lines = "5\n"
   let mut data = _state.active.to_string() + "\n"
+  data = data + _inventory.herbs.to_string() + "\n"
+  data = data + _inventory.revives.to_string() + "\n"
+  data = data + _inventory.charms.to_string() + "\n"
   for i = 0; i < count; i = i + 1 {
     data = data + _state.owned[i].name + "\n"
     data = data + _state.owned[i].emoji + "\n"

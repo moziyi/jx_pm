@@ -180,6 +180,24 @@ body {
 .switch-pet-btn:hover:not(:disabled) { background: rgba(255,255,255,0.1); }
 .switch-pet-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
+/* 道具按钮 */
+.battle-items {
+  display: flex; gap: 6px; padding: 6px 12px;
+  border-top: 0.5px solid var(--border);
+}
+.map-items {
+  display: flex; gap: 6px; margin-top: 8px;
+}
+.item-btn {
+  display: flex; align-items: center; gap: 4px; padding: 5px 10px;
+  border-radius: 6px; border: 0.5px solid var(--border);
+  background: rgba(255,255,255,0.04); color: var(--text); font-size: 12px;
+  cursor: pointer; transition: background 0.15s;
+}
+.item-btn:hover:not(:disabled) { background: rgba(255,255,255,0.1); }
+.item-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.item-count { font-size: 10px; color: var(--muted); }
+
 /* ── 战斗界面 ── */
 #battle-view {
   border: 0.5px solid var(--border);

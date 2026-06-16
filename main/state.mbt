@@ -125,3 +125,21 @@ fn int_to_element(i : Int) -> Element {
     _ => Fire
   }
 }
+
+// ── 道具 ──────────────────────────────────────────────────────────────────
+
+priv struct Inventory {
+  mut herbs  : Int
+  mut revives : Int
+  mut charms : Int
+}
+
+let _inventory : Inventory = { herbs: 3, revives: 1, charms: 2 }
+
+pub fn get_herbs()  -> Int { _inventory.herbs }
+pub fn get_revives() -> Int { _inventory.revives }
+pub fn get_charms() -> Int { _inventory.charms }
+
+pub fn add_herbs(n : Int)  -> Unit { _inventory.herbs  = _inventory.herbs  + n }
+pub fn add_revives(n : Int) -> Unit { _inventory.revives = _inventory.revives + n }
+pub fn add_charms(n : Int) -> Unit { _inventory.charms  = _inventory.charms  + n }
