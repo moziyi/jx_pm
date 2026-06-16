@@ -13,7 +13,7 @@ pub fn new_game() -> Unit {
   _inventory.charms    = _init_inventory.charms
 }
 
-pub fn start_battle(location_id : Int) -> Unit {
+pub fn start_battle(location_id : Int) -> Bool {
   let cfg = get_location(location_id)
   _state.enemy_name    = cfg.name
   _state.enemy_emoji   = cfg.emoji
@@ -21,17 +21,18 @@ pub fn start_battle(location_id : Int) -> Unit {
   _state.enemy_max_hp  = cfg.hp
   _state.enemy_atk     = cfg.atk
   _state.enemy_element = cfg.element
+  // 若 active 宠物战斗不能，自动切换
+  if _state.owned[_state.active].cur_hp <= 0 {
+    for i = 0; i < _state.owned.length(); i = i + 1 {
+      if _state.owned[i].cur_hp > 0 { _state.active = i; break }
+    }
+  }
   let pet = _state.owned[_state.active]
+  if pet.cur_hp <= 0 { return false }
   _state.player_hp     = pet.cur_hp
   _state.player_max_hp = pet.hp
   _state.player_atk     = pet.atk
-}
-
-pub fn recover_after_defeat() -> Unit {
-  if _state.player_hp <= 0 {
-    _state.player_hp = _state.owned[_state.active].hp
-    _state.owned[_state.active].cur_hp = _state.owned[_state.active].hp
-  }
+  true
 }
 
 /// 战斗结束后将 player_hp 同步回 active 宠物的 cur_hp
@@ -54,6 +55,13 @@ pub fn add_pet(hp : Int, atk : Int, cur_hp : Int, element : Int) -> Int {
 pub fn set_active(idx : Int) -> Unit {
   if idx >= 0 && idx < _state.owned.length() {
     _state.active = idx
+  }
+}
+
+/// 自动切换到第一只存活的宠物
+pub fn auto_switch_active() -> Unit {
+  for i = 0; i < _state.owned.length(); i = i + 1 {
+    if _state.owned[i].cur_hp > 0 { _state.active = i; return }
   }
 }
 
@@ -83,6 +91,21 @@ pub fn get_active() -> Int { _state.active }
 pub fn heal_active(n : Int) -> Unit {
   let pet = _state.owned[_state.active]
   pet.cur_hp = if pet.cur_hp + n > pet.hp { pet.hp } else { pet.cur_hp + n }
+}
+
+pub fn heal_active_full() -> Unit {
+  let pet = _state.owned[_state.active]
+  pet.cur_hp = pet.hp
+}
+
+pub fn revive_one() -> Bool {
+  for i = 0; i < _state.owned.length(); i = i + 1 {
+    if _state.owned[i].cur_hp <= 0 {
+      _state.owned[i].cur_hp = _state.owned[i].hp / 2
+      return true
+    }
+  }
+  false
 }
 
 pub fn hurt_active(n : Int) -> Unit {

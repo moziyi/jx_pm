@@ -26,9 +26,9 @@ export const EVENTS = {
   1: [
     { msg: '🧚 幽林精灵出现了！', type: 'battle' },
     { msg: '树洞中发现了药草！', type: 'item', item: 'herbs', n: 1 },
-    { msg: '森林灵气治愈了出战宠物', type: 'heal_active', n: 15 },
+    { msg: '森林灵气治愈了出战宠物', type: 'heal_active_full' },
     { msg: '踩到了毒刺！出战宠物受伤', type: 'hurt_active', n: 10 },
-    { msg: '拾到了遗落的幻兽符！', type: 'item', item: 'charms', n: 1 },
+    { msg: '发现了一只倒在路边的宠物，用草药救醒', type: 'revive_one' },
   ],
   // 水晶矿洞
   2: [

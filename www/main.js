@@ -99,9 +99,11 @@ function renderPetList() {
   if (pets.length === 0) { capturedList.innerHTML = '<span class="empty-tip">还没有宠物</span>'; return }
   capturedList.innerHTML = pets.map((p, i) => {
     const el = ELEMENTS[p.el ?? 4] || '?'
-    return `<span class="captured-tag${i === active ? ' active-pet' : ''}" data-idx="${i}" title="HP:${p.cur_hp}/${p.hp} ATK:${p.atk} 元素:${el}${i===active?' ⚔️出战中':''}">
+    const dead = p.cur_hp <= 0
+    return `<span class="captured-tag${i === active ? ' active-pet' : ''}${dead ? ' fainted' : ''}" data-idx="${i}" title="HP:${p.cur_hp}/${p.hp} ATK:${p.atk} 元素:${el}${i===active?' ⚔️出战中':''}${dead?' 💀被击败':''}">
       <span class="tag-emoji">${p.e}</span><span class="tag-name">${p.n}</span>
-      <span class="tag-element">${el}</span><span class="tag-stats">${p.cur_hp}/${p.hp}</span>
+      <span class="tag-element">${el}</span>
+      <span class="tag-stats">${dead ? '💀' : p.cur_hp+'/'+p.hp}</span>
     </span>`
   }).join('')
   capturedList.querySelectorAll('.captured-tag').forEach(el => {
@@ -161,6 +163,8 @@ function triggerEvent(locId) {
   if (evt.type === 'battle') return 'battle'
   if (evt.type === 'item') { exports['add_' + evt.item](evt.n); if (evt.extra) exports['add_' + evt.extra.item](evt.extra.n) }
   else if (evt.type === 'heal_active') exports.heal_active(evt.n)
+  else if (evt.type === 'heal_active_full') exports.heal_active_full()
+  else if (evt.type === 'revive_one') exports.revive_one()
   else if (evt.type === 'hurt_active') exports.hurt_active(evt.n)
   else if (evt.type === 'heal_all') exports.heal_all(evt.n)
   else if (evt.type === 'hurt_all') exports.hurt_all(evt.n)
@@ -183,7 +187,10 @@ document.querySelectorAll('.marker').forEach(btn => {
     const locId = parseInt(btn.dataset.id, 10)
     const result = triggerEvent(locId)
     if (result === 'battle') {
-      exports.start_battle(locId)
+      if (!exports.start_battle(locId)) {
+        showEventMessage('所有宠物都倒下了！使用醒神草或寻找恢复事件吧。')
+        return
+      }
       syncBattleUI()
       setLog(`遭遇了 ${ds(exports.get_enemy_name())}！选择你的行动。`)
       setButtons(true)
@@ -198,7 +205,7 @@ document.querySelectorAll('.marker').forEach(btn => {
 // ── 10. 战斗 ───────────────────────────────────────────────────────────────
 btnAttack.addEventListener('click', () => { setButtons(false); exports.player_attack(); handleResult() })
 btnSkill?.addEventListener('click', () => { setButtons(false); exports.elemental_skill(); handleResult() })
-btnRun.addEventListener('click', () => { setButtons(false); exports.run_away(); setLog(ds(exports.get_last_message())); setTimeout(exitBattle, 900) })
+btnRun.addEventListener('click', () => { setButtons(false); exports.run_away(); exports.auto_switch_active(); syncFromMoonBit(); setLog(ds(exports.get_last_message())); setTimeout(exitBattle, 900) })
 
 btnUseHerb?.addEventListener('click', () => {
   setButtons(false); if (exports.use_herb()) { setLog(ds(exports.get_last_message())); syncBattleUI(); syncFromMoonBit() }; setButtons(true)
@@ -239,7 +246,25 @@ function handleResult() {
     if (pets.length > max) { showReleasePicker(() => { exitBattle() }) } else { setTimeout(exitBattle, 1500) }
     return
   }
-  if (lost) { setTimeout(() => { exports.recover_after_defeat(); syncBattleUI(); exitBattle() }, 1600); return }
+  if (lost) {
+    syncFromMoonBit()
+    exports.auto_switch_active()
+    syncFromMoonBit()
+    if (exports.all_fainted()) {
+      setLog(`所有宠物都无法出战了…逃离了战斗。`)
+      setTimeout(exitBattle, 1800)
+      return
+    }
+    if (exports.has_alive_pet()) {
+      const dead = pets.findIndex(p => p.cur_hp <= 0)
+      setLog(`${pets[dead]?.n || '宠物'} 倒下了！请切换宠物或逃跑。`)
+      // 只启用切换和逃跑
+      ;[btnAttack, btnSkill, btnUseHerb, btnUseRevive, btnUseCharm].forEach(b => { if (b) b.disabled = true })
+      btnRun.disabled = false
+      renderSwitchPanel()
+      return
+    }
+  }
   setButtons(true)
 }
 

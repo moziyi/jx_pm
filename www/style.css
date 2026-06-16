@@ -165,6 +165,7 @@ body {
 }
 .empty-tip { font-size: 12px; color: var(--muted); }
 .active-pet { border-color: var(--yellow) !important; box-shadow: 0 0 6px rgba(239,159,39,0.3); }
+.fainted { opacity: 0.45; border-color: #555 !important; background: rgba(255,255,255,0.02); }
 
 /* 宠物菜单 */
 .popup-btn {

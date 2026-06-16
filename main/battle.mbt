@@ -70,6 +70,7 @@ fn enemy_counter_attack() -> Int {
 // ── 公开行动 ──────────────────────────────────────────────────────────────
 
 pub fn player_attack() -> Unit {
+  if _state.player_hp <= 0 { return }
   let dealt = roll_damage(_state.player_atk, 6)
   _state.enemy_hp = clamp_min(_state.enemy_hp - dealt, 0)
   let enemy_defeated = _state.enemy_hp <= 0
@@ -92,6 +93,7 @@ pub fn player_attack() -> Unit {
 }
 
 pub fn elemental_skill() -> Unit {
+  if _state.player_hp <= 0 { return }
   let pet   = _state.owned[_state.active]
   let base  = (pet.atk.to_double() * 1.3).to_int()
   let raw   = roll_damage(base, 8)
@@ -197,3 +199,17 @@ pub fn run_away() -> Unit {
 
 pub fn get_player_element() -> Int { element_to_int(_state.owned[_state.active].element) }
 pub fn get_enemy_element()  -> Int { element_to_int(_state.enemy_element) }
+
+pub fn has_alive_pet() -> Bool {
+  for i = 0; i < _state.owned.length(); i = i + 1 {
+    if i != _state.active && _state.owned[i].cur_hp > 0 { return true }
+  }
+  false
+}
+
+pub fn all_fainted() -> Bool {
+  for i = 0; i < _state.owned.length(); i = i + 1 {
+    if _state.owned[i].cur_hp > 0 { return false }
+  }
+  true
+}
