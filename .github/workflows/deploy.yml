@@ -1,0 +1,44 @@
+name: Deploy Game to Pages
+
+on:
+  push:
+    branches: [ "dev" ]
+  pull_request:
+    branches: [ "dev" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install MoonBit
+        run: |
+          bash -c "$(curl -fsSL https://cli.moonbitlang.com/install/unix.sh)"
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      - name: Build MoonBit Wasm
+        # 这里指定工作目录为仓库根目录，因为你的项目结构是根目录下的 main/ 和 www/
+        run: |
+          # 1. 编译 (确保 moon.mod.json 在根目录或指定正确位置)
+          # 如果你的 moon.mod.json 在根目录，直接 build
+          moon build --target wasm
+          
+          # 2. 自动定位 wasm 文件 (递归查找 target 目录)
+          WASM_FILE=$(find . -name "*.wasm" | head -n 1)
+          
+          if [ -z "$WASM_FILE" ]; then
+            echo "错误: 未找到生成的 .wasm 文件！"
+            exit 1
+          fi
+          
+          # 3. 复制到 www 目录 (作为前端加载的产物)
+          cp "$WASM_FILE" ./www/main.wasm
+          echo "已成功将 $WASM_FILE 部署至 ./www/main.wasm"
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./www  # 你的前端代码在 www 目录
