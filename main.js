@@ -70,21 +70,31 @@ const btnAttack = $('btn-attack'), btnSkill = $('btn-skill'), btnRun = $('btn-ru
 const btnUseHerb = $('btn-herb'), btnUseRevive = $('btn-revive'), btnUseCharm = $('btn-charm')
 const petSwitchPanel = $('pet-switch')
 
-// ── 5. 地图 ────────────────────────────────────────────────────────────────
-function drawMap() {
-  const c = $('map-canvas'); if (!c) return
-  const W = c.width = c.offsetWidth || 560, H = c.height = c.offsetHeight || 340
-  const ctx = c.getContext('2d')
-  ctx.fillStyle = '#1e3a12'; ctx.fillRect(0, 0, W, H)
-  ctx.fillStyle = '#2a5018'; [[0.05,0.1,0.3,0.35],[0.45,0.05,0.35,0.45],[0.55,0.45,0.35,0.4],[0.1,0.5,0.28,0.35]].forEach(([x,y,w,h]) => ctx.fillRect(x*W,y*H,w*W,h*H))
-  ctx.fillStyle = '#1a3a5c'; ctx.beginPath(); ctx.ellipse(0.3*W,0.72*H,0.12*W,0.09*H,0,0,Math.PI*2); ctx.fill()
-  ctx.fillStyle = '#3a3020'; [[0.55,0.12],[0.62,0.07],[0.69,0.12]].forEach(([x,y]) => { ctx.beginPath(); ctx.moveTo(x*W,y*H); ctx.lineTo((x+0.05)*W,(y+0.16)*H); ctx.lineTo((x-0.05)*W,(y+0.16)*H); ctx.closePath(); ctx.fill() })
-  ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1
-  for (let i=0;i<W;i+=28){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,H);ctx.stroke()}
-  for (let j=0;j<H;j+=28){ctx.beginPath();ctx.moveTo(0,j);ctx.lineTo(W,j);ctx.stroke()}
+// ── 5. 动画 ────────────────────────────────────────────────────────────────
+function showDamageFloat(el, value, isHeal) {
+  if (!el) return
+  const span = document.createElement('span')
+  span.className = 'dmg-float' + (isHeal ? ' heal' : '')
+  span.textContent = (isHeal ? '+' : '') + value
+  el.appendChild(span)
+  setTimeout(() => span.remove(), 900)
 }
-requestAnimationFrame(() => { drawMap() })
-window.addEventListener('resize', drawMap)
+
+function shakeScreen() {
+  const view = $('battle-view')
+  if (!view) return
+  view.classList.add('shaking')
+  setTimeout(() => view.classList.remove('shaking'), 350)
+}
+
+function showEventPopup(msg) {
+  const old = document.querySelector('.event-toast')
+  if (old) old.remove()
+  const el = document.createElement('div')
+  el.className = 'event-toast'; el.textContent = msg
+  document.body.appendChild(el)
+  setTimeout(() => { el.classList.add('fade-out'); setTimeout(() => el.remove(), 400) }, 1500)
+}
 
 // ── 6. 宠物列表 ────────────────────────────────────────────────────────────
 function renderPetList() {
@@ -116,11 +126,11 @@ function showPetMenu(idx, anchor) {
   const popup = document.createElement('div'); popup.className = 'pet-popup'
   const rect = anchor.getBoundingClientRect()
   popup.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.bottom+4}px;background:#16213e;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:4px;z-index:100;min-width:120px;`
-  const p = pets[idx], isActive = idx === exports.get_active(), onlyOne = pets.length <= 1
+  const p = pets[idx], isActive = idx === exports.get_active(), onlyOne = pets.length <= 1, dead = p.cur_hp <= 0
   popup.innerHTML = `
-    <div style="padding:6px 10px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:2px;">${p.e} ${p.n} <span style="color:#888;font-size:11px;">HP:${p.cur_hp}/${p.hp} ATK:${p.atk}</span></div>
+    <div style="padding:6px 10px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:2px;">${p.e} ${p.n} <span style="color:#888;font-size:11px;">HP:${p.cur_hp}/${p.hp} ATK:${p.atk}${dead?' 💀倒下':''}</span></div>
     <button class="popup-btn" data-action="rename">✏️ 改名</button>
-    <button class="popup-btn" data-action="setactive" ${isActive?'disabled':''}>⚔️ ${isActive?'已是出战宠物':'设为出战'}</button>
+    <button class="popup-btn" data-action="setactive" ${isActive||dead?'disabled':''}>⚔️ ${isActive?'已是出战宠物':dead?'倒下':'设为出战'}</button>
     <button class="popup-btn" data-action="release" style="color:#E24B4A;" ${onlyOne?'disabled':''}>🗑️ 放生</button>
   `
   popup.querySelectorAll('.popup-btn').forEach(b => {
@@ -169,16 +179,8 @@ function triggerEvent(locId) {
   else if (evt.type === 'heal_all') exports.heal_all(evt.n)
   else if (evt.type === 'hurt_all') exports.hurt_all(evt.n)
   syncFromMoonBit()
-  showEventMessage(evt.msg)
+  showEventPopup(evt.msg)
   return 'event'
-}
-
-function showEventMessage(msg) {
-  const el = document.createElement('div')
-  el.style.cssText = 'position:fixed;top:20%;left:50%;transform:translateX(-50%);background:#16213e;color:#e8e8f0;padding:16px 24px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);z-index:200;font-size:14px;text-align:center;min-width:200px;box-shadow:0 4px 20px rgba(0,0,0,0.5);'
-  el.textContent = msg
-  document.body.appendChild(el)
-  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.5s'; setTimeout(() => el.remove(), 500) }, 1500)
 }
 
 // ── 9. 地图标记 ────────────────────────────────────────────────────────────
@@ -188,7 +190,7 @@ document.querySelectorAll('.marker').forEach(btn => {
     const result = triggerEvent(locId)
     if (result === 'battle') {
       if (!exports.start_battle(locId)) {
-        showEventMessage('所有宠物都倒下了！使用醒神草或寻找恢复事件吧。')
+        showEventPopup('所有宠物都倒下了！使用醒神草或寻找恢复事件吧。')
         return
       }
       syncBattleUI()
@@ -205,10 +207,15 @@ document.querySelectorAll('.marker').forEach(btn => {
 // ── 10. 战斗 ───────────────────────────────────────────────────────────────
 btnAttack.addEventListener('click', () => { setButtons(false); exports.player_attack(); handleResult() })
 btnSkill?.addEventListener('click', () => { setButtons(false); exports.elemental_skill(); handleResult() })
-btnRun.addEventListener('click', () => { setButtons(false); exports.run_away(); exports.auto_switch_active(); syncFromMoonBit(); setLog(ds(exports.get_last_message())); setTimeout(exitBattle, 900) })
+btnRun.addEventListener('click', () => { setButtons(false); const wasDead = exports.get_player_hp() <= 0; exports.run_away(); if (wasDead) { exports.auto_switch_active(); syncFromMoonBit() } setLog(ds(exports.get_last_message())); setTimeout(exitBattle, 900) })
 
 btnUseHerb?.addEventListener('click', () => {
-  setButtons(false); if (exports.use_herb()) { setLog(ds(exports.get_last_message())); syncBattleUI(); syncFromMoonBit() }; setButtons(true)
+  setButtons(false)
+  if (exports.use_herb()) {
+    setLog(ds(exports.get_last_message())); syncBattleUI(); syncFromMoonBit()
+    showDamageFloat($('player-avatar'), 20, true) // heal animation
+  }
+  setButtons(true)
 })
 btnUseRevive?.addEventListener('click', () => {
   const dead = pets.findIndex(p => p.cur_hp <= 0)
@@ -231,6 +238,7 @@ function renderSwitchPanel() {
         const taken = exports.get_last_damage_taken()
         setLog(`换上了 ${pets[idx].e} ${pets[idx].n}！受到 ${taken} 点反击。`)
         syncBattleUI(); syncFromMoonBit(); renderSwitchPanel()
+        setButtons(true)
         if (exports.get_last_player_defeated()) { setTimeout(() => { exports.recover_after_defeat(); syncBattleUI(); exitBattle() }, 1600) }
       }
     })
@@ -238,7 +246,12 @@ function renderSwitchPanel() {
 }
 
 function handleResult() {
-  syncBattleUI(); setLog(ds(exports.get_last_message()))
+  const dealt = exports.get_last_damage_dealt()
+  const taken = exports.get_last_damage_taken()
+  syncBattleUI()
+  if (dealt > 0) { showDamageFloat($('enemy-avatar'), dealt, false); shakeScreen() }
+  if (taken > 0 && !exports.get_last_catch_success()) { showDamageFloat($('player-avatar'), taken, false) }
+  setLog(ds(exports.get_last_message()))
   const won = exports.get_last_enemy_defeated(), lost = exports.get_last_player_defeated(), caught = exports.get_last_catch_success()
   if (caught || won) {
     if (caught) syncFromMoonBit()
@@ -325,29 +338,25 @@ function handleSpecialEvent(etype) {
   removeSpecialMarker()
   exports.clear_event()
   const cfg = SPECIAL_EVENTS[etype]
-  showEventMessage(cfg.desc)
+  showEventPopup(cfg.desc)
   if (etype === 1) {
-    // 宝藏：随机 1-3 个道具
     const r = Math.floor(Math.random() * 3)
-    if (r === 0) { exports.add_herbs(2); showEventMessage('获得 🧪 药草 x2！') }
-    else if (r === 1) { exports.add_revives(1); showEventMessage('获得 🌿 醒神草 x1！') }
-    else { exports.add_charms(2); showEventMessage('获得 🔮 幻兽符 x2！') }
+    if (r === 0) { exports.add_herbs(2); showEventPopup('获得 🧪 药草 x2！') }
+    else if (r === 1) { exports.add_revives(1); showEventPopup('获得 🌿 醒神草 x1！') }
+    else { exports.add_charms(2); showEventPopup('获得 🔮 幻兽符 x2！') }
   } else if (etype === 2) {
-    // 稀有敌人：进入战斗，敌属性 1.5x
     const loc = { 1:1, 2:2, 3:3, 4:4 }[Math.floor(Math.random()*4)+1]
     exports.start_battle(loc)
-    // 1.5x 通过连续攻击模拟，简化处理
     syncBattleUI(); setButtons(true)
     petSwitchPanel.hidden = false
     $('battle-items').hidden = false; $('map-items').hidden = true
     mapView.hidden = true; battleView.hidden = false
     setLog('⭐ 遭遇了稀有敌人！属性大幅提升…')
   } else if (etype === 3) {
-    // 神秘商人：用 HP 换道具
     exports.hurt_active(15)
     const r = Math.floor(Math.random() * 2)
-    if (r === 0) { exports.add_charms(3); showEventMessage('🧙 神秘商人用幻兽符 x3 交换了你 15 HP') }
-    else { exports.add_herbs(3); exports.add_revives(1); showEventMessage('🧙 神秘商人留下了药草 x3 和醒神草 x1，收走了你 15 HP') }
+    if (r === 0) { exports.add_charms(3); showEventPopup('🧙 神秘商人用幻兽符 x3 交换了你 15 HP') }
+    else { exports.add_herbs(3); exports.add_revives(1); showEventPopup('🧙 神秘商人留下了药草 x3 和醒神草 x1，收走了你 15 HP') }
   }
   syncFromMoonBit()
 }
