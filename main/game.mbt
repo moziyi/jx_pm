@@ -61,7 +61,13 @@ pub fn set_active(idx : Int) -> Unit {
 /// 自动切换到第一只存活的宠物
 pub fn auto_switch_active() -> Unit {
   for i = 0; i < _state.owned.length(); i = i + 1 {
-    if _state.owned[i].cur_hp > 0 { _state.active = i; return }
+    if _state.owned[i].cur_hp > 0 {
+      _state.active = i
+      _state.player_hp = _state.owned[i].cur_hp
+      _state.player_max_hp = _state.owned[i].hp
+      _state.player_atk = _state.owned[i].atk
+      return
+    }
   }
 }
 

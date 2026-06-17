@@ -116,11 +116,11 @@ function showPetMenu(idx, anchor) {
   const popup = document.createElement('div'); popup.className = 'pet-popup'
   const rect = anchor.getBoundingClientRect()
   popup.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.bottom+4}px;background:#16213e;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:4px;z-index:100;min-width:120px;`
-  const p = pets[idx], isActive = idx === exports.get_active(), onlyOne = pets.length <= 1
+  const p = pets[idx], isActive = idx === exports.get_active(), onlyOne = pets.length <= 1, dead = p.cur_hp <= 0
   popup.innerHTML = `
-    <div style="padding:6px 10px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:2px;">${p.e} ${p.n} <span style="color:#888;font-size:11px;">HP:${p.cur_hp}/${p.hp} ATK:${p.atk}</span></div>
+    <div style="padding:6px 10px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:2px;">${p.e} ${p.n} <span style="color:#888;font-size:11px;">HP:${p.cur_hp}/${p.hp} ATK:${p.atk}${dead?' 💀倒下':''}</span></div>
     <button class="popup-btn" data-action="rename">✏️ 改名</button>
-    <button class="popup-btn" data-action="setactive" ${isActive?'disabled':''}>⚔️ ${isActive?'已是出战宠物':'设为出战'}</button>
+    <button class="popup-btn" data-action="setactive" ${isActive||dead?'disabled':''}>⚔️ ${isActive?'已是出战宠物':dead?'倒下':'设为出战'}</button>
     <button class="popup-btn" data-action="release" style="color:#E24B4A;" ${onlyOne?'disabled':''}>🗑️ 放生</button>
   `
   popup.querySelectorAll('.popup-btn').forEach(b => {
@@ -205,7 +205,7 @@ document.querySelectorAll('.marker').forEach(btn => {
 // ── 10. 战斗 ───────────────────────────────────────────────────────────────
 btnAttack.addEventListener('click', () => { setButtons(false); exports.player_attack(); handleResult() })
 btnSkill?.addEventListener('click', () => { setButtons(false); exports.elemental_skill(); handleResult() })
-btnRun.addEventListener('click', () => { setButtons(false); exports.run_away(); exports.auto_switch_active(); syncFromMoonBit(); setLog(ds(exports.get_last_message())); setTimeout(exitBattle, 900) })
+btnRun.addEventListener('click', () => { setButtons(false); const wasDead = exports.get_player_hp() <= 0; exports.run_away(); if (wasDead) { exports.auto_switch_active(); syncFromMoonBit() } setLog(ds(exports.get_last_message())); setTimeout(exitBattle, 900) })
 
 btnUseHerb?.addEventListener('click', () => {
   setButtons(false); if (exports.use_herb()) { setLog(ds(exports.get_last_message())); syncBattleUI(); syncFromMoonBit() }; setButtons(true)
