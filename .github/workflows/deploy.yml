@@ -2,9 +2,9 @@ name: Deploy Game to Pages
 
 on:
   push:
-    branches: [ "dev" ]
+    branches: [ "beta" ]
   pull_request:
-    branches: [ "dev" ]
+    branches: [ "beta" ]
 
 permissions:
   contents: write
