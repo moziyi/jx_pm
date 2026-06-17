@@ -1,5 +1,5 @@
 // main.js — 幻兽森林 应用逻辑
-import { ELEMENTS, STARTER_PET, INITIAL_ITEMS, LOCATIONS, EVENTS, SPECIAL_EVENTS } from './config.js'
+import { ELEMENTS, STARTER_PET, INITIAL_ITEMS, SCENES, EVENTS, SPECIAL_EVENTS, weightedPick } from './config.js'
 import { checksum, getUUID, loadGame, saveGame } from './storage.js'
 
 (async () => {
@@ -165,12 +165,15 @@ $('map-revive')?.addEventListener('click', () => {
 })
 
 // ── 8. 事件系统 ────────────────────────────────────────────────────────────
-function triggerEvent(locId) {
-  const pool = EVENTS[locId]
-  if (!pool) return 'battle'
-  const evt = pool[Math.floor(Math.random() * pool.length)]
-  // 非战斗事件：立即执行效果
-  if (evt.type === 'battle') return 'battle'
+function triggerEvent(sceneKey) {
+  const pool = EVENTS[sceneKey]
+  if (!pool) return { type: 'none' }
+  return Math.random() < 1/3
+    ? { type: 'battle', enemy: weightedPick(pool.battles).enemy }
+    : { type: 'event', evt: weightedPick(pool.events) }
+}
+
+function handleEvent(evt) {
   if (evt.type === 'item') { exports['add_' + evt.item](evt.n); if (evt.extra) exports['add_' + evt.extra.item](evt.extra.n) }
   else if (evt.type === 'heal_active') exports.heal_active(evt.n)
   else if (evt.type === 'heal_active_full') exports.heal_active_full()
@@ -180,15 +183,16 @@ function triggerEvent(locId) {
   else if (evt.type === 'hurt_all') exports.hurt_all(evt.n)
   syncFromMoonBit()
   showEventPopup(evt.msg)
-  return 'event'
 }
 
 // ── 9. 地图标记 ────────────────────────────────────────────────────────────
 document.querySelectorAll('.marker').forEach(btn => {
   btn.addEventListener('click', () => {
-    const locId = parseInt(btn.dataset.id, 10)
-    const result = triggerEvent(locId)
-    if (result === 'battle') {
+    const sceneKey = btn.dataset.scene
+    const result = triggerEvent(sceneKey)
+    if (result.type === 'none') return
+    if (result.type === 'battle') {
+      const locId = SCENES[sceneKey].id
       if (!exports.start_battle(locId)) {
         showEventPopup('所有宠物都倒下了！使用醒神草或寻找恢复事件吧。')
         return
@@ -200,6 +204,8 @@ document.querySelectorAll('.marker').forEach(btn => {
       const bi = $('battle-items'); if (bi) bi.hidden = false
       $('map-items').hidden = true
       mapView.hidden = true; battleView.hidden = false
+    } else if (result.type === 'event') {
+      handleEvent(result.evt)
     }
   })
 })
@@ -345,8 +351,9 @@ function handleSpecialEvent(etype) {
     else if (r === 1) { exports.add_revives(1); showEventPopup('获得 🌿 醒神草 x1！') }
     else { exports.add_charms(2); showEventPopup('获得 🔮 幻兽符 x2！') }
   } else if (etype === 2) {
-    const loc = { 1:1, 2:2, 3:3, 4:4 }[Math.floor(Math.random()*4)+1]
-    exports.start_battle(loc)
+    const keys = Object.keys(SCENES)
+    const locId = SCENES[keys[Math.floor(Math.random() * keys.length)]].id
+    exports.start_battle(locId)
     syncBattleUI(); setButtons(true)
     petSwitchPanel.hidden = false
     $('battle-items').hidden = false; $('map-items').hidden = true

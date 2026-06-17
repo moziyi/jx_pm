@@ -74,6 +74,10 @@ let _result : LastResult = {
 
 let _inventory : Inventory = { herbs: 3, revives: 1, charms: 2 }
 
+// 敌方基础属性（用于 boost_enemy 计算）
+priv struct EnemyBase { mut hp : Int; mut atk : Int }
+let _enemy_base : EnemyBase = { hp: 0, atk: 0 }
+
 // 特殊事件点位
 priv struct SpecialEvent {
   mut active : Bool

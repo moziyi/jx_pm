@@ -21,6 +21,8 @@ pub fn start_battle(location_id : Int) -> Bool {
   _state.enemy_max_hp  = cfg.hp
   _state.enemy_atk     = cfg.atk
   _state.enemy_element = cfg.element
+  _enemy_base.hp = cfg.hp
+  _enemy_base.atk = cfg.atk
   // 若 active 宠物战斗不能，自动切换
   if _state.owned[_state.active].cur_hp <= 0 {
     for i = 0; i < _state.owned.length(); i = i + 1 {
@@ -38,6 +40,13 @@ pub fn start_battle(location_id : Int) -> Bool {
 /// 战斗结束后将 player_hp 同步回 active 宠物的 cur_hp
 pub fn commit_battle() -> Unit {
   _state.owned[_state.active].cur_hp = _state.player_hp
+}
+
+/// 强化敌人（百分比，100=不变，120=+20%）
+pub fn boost_enemy(hp_pct : Int, atk_pct : Int) -> Unit {
+  _state.enemy_max_hp = (_enemy_base.hp.to_double() * hp_pct.to_double() / 100.0).to_int()
+  _state.enemy_hp = _state.enemy_max_hp
+  _state.enemy_atk = (_enemy_base.atk.to_double() * atk_pct.to_double() / 100.0).to_int()
 }
 
 // ── 宠物管理 ──────────────────────────────────────────────────────────────
