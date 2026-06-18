@@ -78,6 +78,30 @@ let _init_inventory : Inventory = { herbs: 3, revives: 1, charms: 2 }
 // 常量
 let max_pets : Int = 5
 
+// 特殊事件类型
+priv enum EventType {
+  Treasure
+  EliteBattle
+  Merchant
+}
+
+fn event_type_to_int(e : EventType) -> Int {
+  match e {
+    Treasure    => 1
+    EliteBattle => 2
+    Merchant    => 3
+  }
+}
+
+fn int_to_event_type(i : Int) -> EventType {
+  match i {
+    1 => Treasure
+    2 => EliteBattle
+    3 => Merchant
+    _ => Treasure
+  }
+}
+
 // Element 转换
 pub fn element_to_int(e : Element) -> Int {
   match e {

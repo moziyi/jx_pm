@@ -77,8 +77,8 @@ let _enemy_base : EnemyBase = { hp: 0, atk: 0 }
 // 特殊事件点位
 priv struct SpecialEvent {
   mut active : Bool
-  mut etype  : Int
+  mut etype  : EventType
   mut x      : Int
   mut y      : Int
 }
-let _special : SpecialEvent = { active: false, etype: 0, x: 0, y: 0 }
+let _special : SpecialEvent = { active: false, etype: Treasure, x: 0, y: 0 }

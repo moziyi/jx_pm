@@ -150,8 +150,7 @@ pub fn hurt_all(n : Int) -> Unit {
 // ── 特殊事件点位 ──────────────────────────────────────────────────────────
 
 pub fn spawn_event() -> Int {
-  if math_random() < 0.0 { return 0 }  // 由 JS 控制概率
-  _special.etype  = 0
+  if math_random() < 0.0 { return 0 }
   _special.active = false
   0
 }
@@ -159,18 +158,17 @@ pub fn spawn_event() -> Int {
 /// 由 JS 指定类型和坐标生成特殊点位
 pub fn place_event(etype : Int, x : Int, y : Int) -> Unit {
   _special.active = true
-  _special.etype  = etype
+  _special.etype  = int_to_event_type(etype)
   _special.x      = x
   _special.y      = y
 }
 
 pub fn clear_event() -> Unit {
   _special.active = false
-  _special.etype  = 0
 }
 
 pub fn get_event_active() -> Bool { _special.active }
-pub fn get_event_type()  -> Int  { _special.etype }
+pub fn get_event_type()  -> Int  { event_type_to_int(_special.etype) }
 pub fn get_event_x()     -> Int  { _special.x }
 pub fn get_event_y()     -> Int  { _special.y }
 
