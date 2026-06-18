@@ -1,5 +1,5 @@
-{
-  "link": {
+options(
+  link: {
     "wasm": {
       "exports": [
         "new_game",
@@ -67,9 +67,9 @@
         "get_last_catch_rate",
         "get_last_player_defeated",
         "get_last_enemy_defeated",
-        "export_save"
+        "export_save",
       ],
-      "export-memory-name": "memory"
+      "export-memory-name": "memory",
     },
     "wasm-gc": {
       "exports": [
@@ -138,9 +138,9 @@
         "get_last_catch_rate",
         "get_last_player_defeated",
         "get_last_enemy_defeated",
-        "export_save"
+        "export_save",
       ],
-      "use-js-builtin-string": true
-    }
-  }
-}
+      "use-js-builtin-string": true,
+    },
+  },
+)
