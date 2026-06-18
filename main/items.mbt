@@ -11,10 +11,11 @@ pub fn add_charms(n : Int) -> Unit { _inventory.charms  = _inventory.charms  + n
 pub fn use_herb() -> Bool {
   if _inventory.herbs <= 0 { return false }
   _inventory.herbs = _inventory.herbs - 1
-  let pet = _state.owned[_state.active]
-  let heal = if pet.cur_hp + 20 > pet.hp { pet.hp - pet.cur_hp } else { 20 }
-  _state.player_hp = pet.cur_hp + heal
-  pet.cur_hp = _state.player_hp
+  let current = _state.player_hp
+  let max_hp  = _state.owned[_state.active].hp
+  let heal    = if current + 20 > max_hp { max_hp - current } else { 20 }
+  _state.player_hp = current + heal
+  _state.owned[_state.active].cur_hp = _state.player_hp
   let taken = enemy_counter_attack()
   let player_defeated = _state.player_hp <= 0
   _result.damage_dealt    = 0
