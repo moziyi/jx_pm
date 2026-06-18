@@ -37,9 +37,14 @@ pub fn start_battle(location_id : Int) -> Bool {
   true
 }
 
-/// 战斗结束后将 player_hp 同步回 active 宠物的 cur_hp
-pub fn commit_battle() -> Unit {
+/// 将 player_hp 同步回 active 宠物的 cur_hp
+fn sync_active_hp() -> Unit {
   _state.owned[_state.active].cur_hp = _state.player_hp
+}
+
+/// 战斗结束后提交状态（供 JS exitBattle 调用）
+pub fn commit_battle() -> Unit {
+  sync_active_hp()
 }
 
 /// 强化敌人（百分比，100=不变，120=+20%）

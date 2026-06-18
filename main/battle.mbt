@@ -168,6 +168,7 @@ pub fn switch_pet(idx : Int) -> Bool {
 }
 
 pub fn run_away() -> Unit {
+  sync_active_hp()
   _result.damage_dealt    = 0
   _result.damage_taken    = 0
   _result.catch_success   = false
