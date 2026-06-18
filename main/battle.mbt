@@ -180,14 +180,17 @@ pub fn run_away() -> Unit {
 pub fn get_player_element() -> Int { element_to_int(_state.owned[_state.active].element) }
 pub fn get_enemy_element()  -> Int { element_to_int(_state.enemy_element) }
 
-pub fn has_alive_pet() -> Bool {
+/// 除当前出战宠外是否还有其他可战斗的宠物
+pub fn has_other_pet() -> Bool {
   for i = 0; i < _state.owned.length(); i = i + 1 {
     if i != _state.active && _state.owned[i].cur_hp > 0 { return true }
   }
   false
 }
 
+/// 所有宠物是否都战斗不能
 pub fn all_fainted() -> Bool {
+  if _state.owned.length() == 0 { return true }
   for i = 0; i < _state.owned.length(); i = i + 1 {
     if _state.owned[i].cur_hp > 0 { return false }
   }

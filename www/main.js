@@ -274,7 +274,7 @@ function handleResult() {
       setTimeout(exitBattle, 1800)
       return
     }
-    if (exports.has_alive_pet()) {
+    if (exports.has_other_pet()) {
       const dead = pets.findIndex(p => p.cur_hp <= 0)
       setLog(`${pets[dead]?.n || '宠物'} 倒下了！请切换宠物或逃跑。`)
       // 只启用切换和逃跑
