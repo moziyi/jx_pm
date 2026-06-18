@@ -1,8 +1,4 @@
 // state.mbt — 数据结构与全局状态
-
-// JS 互操作
-fn math_random() -> Double = "env" "math_random"
-
 // 已拥有宠物
 priv struct CapturedEntry {
   name    : String

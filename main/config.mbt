@@ -1,5 +1,8 @@
 // config.mbt — 游戏常量与配置
 
+// JS 互操作
+fn math_random() -> Double = "env" "math_random"
+
 // 五行元素
 enum Element {
   Metal
