@@ -9,6 +9,36 @@ enum Element {
   Fire
 }
 
+// 战斗元素效果
+enum BattleEffect {
+  Restrain     // 克制 1.2x
+  Restricted   // 被克 0.8x
+  Generate     // 相生 0.5x 治疗
+  Neutral      // 1.0x
+}
+
+// 获取元素战斗效果
+pub fn battle_effect(atk : Element, def : Element) -> BattleEffect {
+  match (atk, def) {
+    // 克制
+    (Metal, Wood) | (Wood, Earth) | (Earth, Water) | (Water, Fire) | (Fire, Metal) => Restrain
+    // 被克
+    (Wood, Metal) | (Earth, Wood) | (Water, Earth) | (Fire, Water) | (Metal, Fire) => Restricted
+    // 相生
+    (Metal, Water) | (Water, Wood) | (Wood, Fire) | (Fire, Earth) | (Earth, Metal) => Generate
+    _ => Neutral
+  }
+}
+
+fn effect_to_mult(e : BattleEffect) -> Double {
+  match e {
+    Restrain   => 1.2
+    Restricted => 0.8
+    Generate   => 0.5
+    Neutral    => 1.0
+  }
+}
+
 // 地点配置
 priv struct LocationConfig {
   name    : String

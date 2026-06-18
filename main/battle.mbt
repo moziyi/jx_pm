@@ -24,40 +24,20 @@ fn roll_stat(base : Int) -> Int {
   if v < 1 { 1 } else { v }
 }
 
-// 五行倍率: 克制 1.2 / 被克 0.8 / 相生 0.5 / 其他 1.0
-fn type_multiplier(atk : Element, def : Element) -> Double {
-  match (atk, def) {
-    (Metal, Wood) => 1.2
-    (Wood, Earth) => 1.2
-    (Earth, Water) => 1.2
-    (Water, Fire) => 1.2
-    (Fire, Metal) => 1.2
-    (Wood, Metal) => 0.8
-    (Earth, Wood) => 0.8
-    (Water, Earth) => 0.8
-    (Fire, Water) => 0.8
-    (Metal, Fire) => 0.8
-    (Metal, Water) => 0.5
-    (Water, Wood) => 0.5
-    (Wood, Fire) => 0.5
-    (Fire, Earth) => 0.5
-    (Earth, Metal) => 0.5
-    _ => 1.0
-  }
-}
-
 fn enemy_attack_raw() -> Int {
   let raw  = roll_damage(_state.enemy_atk, 4)
-  let mult = type_multiplier(_state.enemy_element, _state.owned[_state.active].element)
-  if mult < 0.9 && mult > 0.4 {
-    // 相生：治疗玩家
-    let heal = (raw.to_double() * mult).to_int()
-    let pet = _state.owned[_state.active]
-    _state.player_hp = if _state.player_hp + heal > pet.hp { pet.hp } else { _state.player_hp + heal }
-    0  // 无伤害
-  } else {
-    let d = (raw.to_double() * mult).to_int()
-    if d < 1 { 1 } else { d }
+  let eff  = battle_effect(_state.enemy_element, _state.owned[_state.active].element)
+  match eff {
+    Generate => {
+      let heal = (raw.to_double() * 0.5).to_int()
+      let pet = _state.owned[_state.active]
+      _state.player_hp = if _state.player_hp + heal > pet.hp { pet.hp } else { _state.player_hp + heal }
+      0
+    }
+    _ => {
+      let d = (raw.to_double() * effect_to_mult(eff)).to_int()
+      if d < 1 { 1 } else { d }
+    }
   }
 }
 
@@ -97,39 +77,39 @@ pub fn elemental_skill() -> Unit {
   let pet   = _state.owned[_state.active]
   let base  = (pet.atk.to_double() * 1.3).to_int()
   let raw   = roll_damage(base, 8)
-  let mult  = type_multiplier(pet.element, _state.enemy_element)
-  let is_heal = mult < 0.9 && mult > 0.4
-  let dmg = if is_heal {
-    0
-  } else {
-    let d = (raw.to_double() * mult).to_int()
-    if d < 1 { 1 } else { d }
-  }
-  let heal = if is_heal { (raw.to_double() * mult).to_int() } else { 0 }
-  if is_heal {
-    _state.enemy_hp = if _state.enemy_hp + heal > _state.enemy_max_hp { _state.enemy_max_hp } else { _state.enemy_hp + heal }
-  } else {
-    _state.enemy_hp = clamp_min(_state.enemy_hp - dmg, 0)
-  }
-  let enemy_defeated = _state.enemy_hp <= 0
-  let taken = if enemy_defeated { 0 } else { enemy_counter_attack() }
-  let player_defeated = _state.player_hp <= 0
-  _result.damage_dealt    = if is_heal { 0 } else { dmg }
-  _result.damage_taken    = taken
-  _result.catch_success   = false
-  _result.catch_rate      = 0.0
-  _result.enemy_defeated  = enemy_defeated
-  _result.player_defeated = player_defeated
-  _result.message =
-    if is_heal {
-      "元素技为 \{_state.enemy_name} 恢复了 \{heal} HP…受到 \{taken} 点反击。"
-    } else if enemy_defeated {
-      "元素技造成 \{dmg} 点伤害！\{_state.enemy_name} 被击败了！"
-    } else if player_defeated {
-      "元素技造成 \{dmg} 点伤害，但受到 \{taken} 点反击。\{pet.name} 倒下了…"
-    } else {
-      "元素技造成 \{dmg} 点伤害，受到 \{taken} 点反击。敌人还剩 \{_state.enemy_hp} HP。"
+  let eff   = battle_effect(pet.element, _state.enemy_element)
+  match eff {
+    Generate => {
+      let heal = (raw.to_double() * 0.5).to_int()
+      _state.enemy_hp = if _state.enemy_hp + heal > _state.enemy_max_hp { _state.enemy_max_hp } else { _state.enemy_hp + heal }
+      let taken = enemy_counter_attack()
+      _result.damage_dealt    = 0
+      _result.damage_taken    = taken
+      _result.catch_success   = false
+      _result.catch_rate      = 0.0
+      _result.enemy_defeated  = false
+      _result.player_defeated = _state.player_hp <= 0
+      _result.message         = "元素技为 \{_state.enemy_name} 恢复了 \{heal} HP…受到 \{taken} 点反击。"
     }
+    _ => {
+      let mult = effect_to_mult(eff)
+      let dmg  = (raw.to_double() * mult).to_int()
+      let d    = if dmg < 1 { 1 } else { dmg }
+      _state.enemy_hp = clamp_min(_state.enemy_hp - d, 0)
+      let ed = _state.enemy_hp <= 0
+      let taken = if ed { 0 } else { enemy_counter_attack() }
+      _result.damage_dealt    = d
+      _result.damage_taken    = taken
+      _result.catch_success   = false
+      _result.catch_rate      = 0.0
+      _result.enemy_defeated  = ed
+      _result.player_defeated = _state.player_hp <= 0
+      _result.message =
+        if ed { "元素技造成 \{d} 点伤害！\{_state.enemy_name} 被击败了！" }
+        else if _result.player_defeated { "元素技造成 \{d} 点伤害，但受到 \{taken} 点反击。\{pet.name} 倒下了…" }
+        else { "元素技造成 \{d} 点伤害，受到 \{taken} 点反击。敌人还剩 \{_state.enemy_hp} HP。" }
+    }
+  }
 }
 
 pub fn try_catch() -> Unit {
