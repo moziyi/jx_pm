@@ -10,7 +10,8 @@ pub fn new_game() -> Unit {
   _state.active        = 0
   _inventory.herbs     = _init_inventory.herbs
   _inventory.revives    = _init_inventory.revives
-  _inventory.charms    = _init_inventory.charms
+  _inventory.charms       = _init_inventory.charms
+  _inventory.great_charms = _init_inventory.great_charms
 }
 
 pub fn start_battle(location_id : Int) -> Bool {
@@ -207,6 +208,7 @@ pub fn export_save() -> String {
   data = data + _inventory.herbs.to_string() + "\n"
   data = data + _inventory.revives.to_string() + "\n"
   data = data + _inventory.charms.to_string() + "\n"
+  data = data + _inventory.great_charms.to_string() + "\n"
   for i = 0; i < count; i = i + 1 {
     data = data + _state.owned[i].name + "\n"
     data = data + _state.owned[i].emoji + "\n"

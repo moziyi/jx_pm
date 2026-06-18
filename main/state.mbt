@@ -12,9 +12,10 @@ priv struct CapturedEntry {
 
 // 道具
 priv struct Inventory {
-  mut herbs  : Int
-  mut revives : Int
-  mut charms : Int
+  mut herbs        : Int
+  mut revives      : Int
+  mut charms       : Int
+  mut great_charms : Int
 }
 
 // 行动结果
@@ -68,7 +69,7 @@ let _result : LastResult = {
   enemy_defeated:  false,
 }
 
-let _inventory : Inventory = { herbs: 3, revives: 1, charms: 2 }
+let _inventory : Inventory = { herbs: 3, revives: 1, charms: 2, great_charms: 1 }
 
 // 敌方基础属性（用于 boost_enemy 计算）
 priv struct EnemyBase { mut hp : Int; mut atk : Int }

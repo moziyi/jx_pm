@@ -35,6 +35,7 @@ if (saved && saved.pets.length > 0) {
     exports.add_herbs(saved.inv.herbs - exports.get_herbs())
     exports.add_revives(saved.inv.revives - exports.get_revives())
     exports.add_charms(saved.inv.charms - exports.get_charms())
+    exports.add_great_charms((saved.inv.great_charms || 1) - (exports.get_great_charms ? exports.get_great_charms() : 1))
   }
   pets = saved.pets
 } else {
@@ -67,7 +68,7 @@ const $ = (id) => document.getElementById(id)
 const mapView = $('map-view'), battleView = $('battle-view'), battleLog = $('battle-log')
 const capturedList = $('captured-list'), caughtCount = $('caught-count')
 const btnAttack = $('btn-attack'), btnSkill = $('btn-skill'), btnRun = $('btn-run')
-const btnUseHerb = $('btn-herb'), btnUseRevive = $('btn-revive'), btnUseCharm = $('btn-charm')
+const btnUseHerb = $('btn-herb'), btnUseRevive = $('btn-revive'), btnUseCharm = $('btn-charm'), btnUseGreatCharm = $('btn-great-charm')
 const petSwitchPanel = $('pet-switch')
 
 // ── 5. 动画 ────────────────────────────────────────────────────────────────
@@ -147,9 +148,10 @@ function showPetMenu(idx, anchor) {
 
 // ── 7. 道具 UI ─────────────────────────────────────────────────────────────
 function updateItemCounts() {
-  const h = exports.get_herbs(), r = exports.get_revives(), c = exports.get_charms()
+  const h = exports.get_herbs(), r = exports.get_revives(), c = exports.get_charms(), gc = exports.get_great_charms ? exports.get_great_charms() : 0
   const set = (id, n) => { const el = $(id); if (el) el.textContent = 'x' + n }
-  set('herb-count', h); set('map-herb-count', h); set('revive-count', r); set('map-revive-count', r); set('charm-count', c)
+  set('herb-count', h); set('map-herb-count', h); set('revive-count', r); set('map-revive-count', r)
+  set('charm-count', c); set('great-charm-count', gc)
   if (btnUseHerb) btnUseHerb.disabled = h <= 0
   if (btnUseRevive) btnUseRevive.disabled = r <= 0
   if (btnUseCharm) btnUseCharm.disabled = c <= 0
@@ -229,6 +231,7 @@ btnUseRevive?.addEventListener('click', () => {
   setButtons(false); if (exports.use_revive(dead)) { setLog(ds(exports.get_last_message())); syncBattleUI(); syncFromMoonBit() }; setButtons(true)
 })
 btnUseCharm?.addEventListener('click', () => { setButtons(false); if (exports.use_charm()) { handleResult() } else { setButtons(true) } })
+btnUseGreatCharm?.addEventListener('click', () => { setButtons(false); if (exports.use_great_charm()) { handleResult() } else { setButtons(true) } })
 
 function renderSwitchPanel() {
   if (!petSwitchPanel) return
@@ -278,7 +281,7 @@ function handleResult() {
       const dead = pets.findIndex(p => p.cur_hp <= 0)
       setLog(`${pets[dead]?.n || '宠物'} 倒下了！请切换宠物或逃跑。`)
       // 只启用切换和逃跑
-      ;[btnAttack, btnSkill, btnUseHerb, btnUseRevive, btnUseCharm].forEach(b => { if (b) b.disabled = true })
+      ;[btnAttack, btnSkill, btnUseHerb, btnUseRevive, btnUseCharm, btnUseGreatCharm].forEach(b => { if (b) b.disabled = true })
       btnRun.disabled = false
       renderSwitchPanel()
       return
@@ -388,7 +391,7 @@ function setHp(who, cur, max) {
   $(`${who}-hp-text`).textContent = `${Math.max(0, cur)}/${max}`
 }
 function setLog(msg) { battleLog.textContent = msg }
-function setButtons(on) { [btnAttack, btnSkill, btnRun, btnUseHerb, btnUseRevive, btnUseCharm].forEach(b => { if (b) b.disabled = !on }) }
+function setButtons(on) { [btnAttack, btnSkill, btnRun, btnUseHerb, btnUseRevive, btnUseCharm, btnUseGreatCharm].forEach(b => { if (b) b.disabled = !on }) }
 
 // ── 11. 启动 ───────────────────────────────────────────────────────────────
 renderPetList(); renderSwitchPanel(); updateItemCounts()

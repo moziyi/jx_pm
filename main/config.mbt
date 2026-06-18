@@ -73,7 +73,7 @@ let _starter : CapturedEntry = {
 }
 
 // 初始道具
-let _init_inventory : Inventory = { herbs: 3, revives: 1, charms: 2 }
+let _init_inventory : Inventory = { herbs: 3, revives: 1, charms: 2, great_charms: 1 }
 
 // 常量
 let max_pets : Int = 5

@@ -4,7 +4,7 @@ export const ELEMENTS = ['金', '木', '土', '水', '火']
 
 export const STARTER_PET = { n: '小幽', e: '🧚', hp: 35, atk: 8, lv: 1, cur_hp: 35, el: 4 }
 
-export const INITIAL_ITEMS = { herbs: 3, revives: 1, charms: 2 }
+export const INITIAL_ITEMS = { herbs: 3, revives: 1, charms: 2, great_charms: 1 }
 
 // 场景 → MoonBit location_id 映射
 export const SCENES = {

@@ -112,9 +112,8 @@ pub fn elemental_skill() -> Unit {
   }
 }
 
-pub fn try_catch() -> Unit {
-  let rate    = calc_catch_rate()
-  let pct     = (rate * 100.0).to_int()
+// 内部：执行捕捉逻辑，rate 为成功率
+fn do_catch(rate : Double) -> Bool {
   let success = math_random() < rate
   if success {
     let hp = roll_stat(_state.enemy_max_hp)
@@ -136,6 +135,7 @@ pub fn try_catch() -> Unit {
   _result.catch_rate      = rate
   _result.enemy_defeated  = success
   _result.player_defeated = player_defeated
+  let pct = (rate * 100.0).to_int()
   _result.message =
     if success {
       "捕捉成功！\{_state.enemy_name} 加入了你的队伍！"
@@ -144,6 +144,11 @@ pub fn try_catch() -> Unit {
     } else {
       "捕捉失败（\{pct}% 概率）。受到 \{taken} 点反击。"
     }
+  success
+}
+
+pub fn try_catch() -> Unit {
+  do_catch(calc_catch_rate()) |> ignore
 }
 
 pub fn switch_pet(idx : Int) -> Bool {

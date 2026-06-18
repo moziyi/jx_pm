@@ -25,10 +25,10 @@ export function loadGame() {
       const data = lines.slice(2).join('\n')
       if (String(checksum(data)) !== lines[1]) { console.warn('存档校验失败'); return null }
       uuid = lines[2]; active = parseInt(lines[3]) || 0
-      let inv = { herbs: 3, revives: 1, charms: 2 }
+      let inv = { herbs: 3, revives: 1, charms: 2, great_charms: 1 }
       if (ver >= 5) {
-        inv = { herbs: parseInt(lines[4])||0, revives: parseInt(lines[5])||0, charms: parseInt(lines[6])||0 }
-        dataStart = 7
+        inv = { herbs: parseInt(lines[4])||0, revives: parseInt(lines[5])||0, charms: parseInt(lines[6])||0, great_charms: ver >= 6 ? (parseInt(lines[7])||0) : 1 }
+        dataStart = ver >= 6 ? 8 : 7
       } else { dataStart = 4 }
       const n = ver >= 4 ? 7 : 6
       const r = []
@@ -50,7 +50,8 @@ export function saveGame(pets, exports) {
   const h = exports.get_herbs ? exports.get_herbs() : 3
   const r = exports.get_revives ? exports.get_revives() : 1
   const c = exports.get_charms ? exports.get_charms() : 2
-  const data = `${getUUID()}\n${exports.get_active()}\n${h}\n${r}\n${c}\n` +
+  const gc = exports.get_great_charms ? exports.get_great_charms() : 1
+  const data = `${getUUID()}\n${exports.get_active()}\n${h}\n${r}\n${c}\n${gc}\n` +
     pets.map(p => `${p.n}\n${p.e}\n${p.hp}\n${p.atk}\n${p.lv}\n${p.cur_hp}\n${p.el ?? 4}`).join('\n') + '\n'
   localStorage.setItem(SAVE_KEY, `5\n${checksum(data)}\n${data}`)
 }
