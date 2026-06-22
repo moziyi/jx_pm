@@ -20,28 +20,54 @@ export function loadGame() {
     if (!raw) return null
     const lines = raw.split('\n')
     const ver = parseInt(lines[0])
-    let uuid, active = 0, dataStart
-    if (ver >= 3) {
-      const data = lines.slice(2).join('\n')
-      if (String(checksum(data)) !== lines[1]) { console.warn('存档校验失败'); return null }
-      uuid = lines[2]; active = parseInt(lines[3]) || 0
-      let inv = { herbs: 3, revives: 1, charms: 2, great_charms: 1 }
-      if (ver >= 5) {
-        inv = { herbs: parseInt(lines[4])||0, revives: parseInt(lines[5])||0, charms: parseInt(lines[6])||0, great_charms: ver >= 6 ? (parseInt(lines[7])||0) : 1 }
-        dataStart = ver >= 6 ? 8 : 7
-      } else { dataStart = 4 }
-      const n = ver >= 4 ? 7 : 6
-      const r = []
-      for (let i = dataStart; i + n - 1 < lines.length; i += n) {
+    if (ver < 3) return null
+    const data = lines.slice(2).join('\n')
+    if (String(checksum(data)) !== lines[1]) { console.warn('存档校验失败'); return null }
+    const uuid = lines[2]
+    const active = parseInt(lines[3]) || 0
+    let inv = { herbs: 3, revives: 1, charms: 2, great_charms: 1 }
+    let dataStart, petFields
+    if (ver >= 6) {
+      inv = { herbs: parseInt(lines[4])||0, revives: parseInt(lines[5])||0, charms: parseInt(lines[6])||0, great_charms: parseInt(lines[7])||0 }
+      dataStart = 8
+      petFields = 10
+    } else if (ver >= 5) {
+      inv = { herbs: parseInt(lines[4])||0, revives: parseInt(lines[5])||0, charms: parseInt(lines[6])||0, great_charms: 1 }
+      dataStart = 7
+      petFields = 7
+    } else {
+      dataStart = 4
+      petFields = ver >= 4 ? 7 : 6
+    }
+    const r = []
+    for (let i = dataStart; i + petFields - 1 < lines.length; i += petFields) {
+      if (ver >= 6) {
         r.push({
           n: lines[i], e: lines[i+1],
           hp: parseInt(lines[i+2]), atk: parseInt(lines[i+3]),
-          lv: parseInt(lines[i+4]), cur_hp: parseInt(lines[i+5]),
-          el: ver >= 4 ? (parseInt(lines[i+6]) || 0) : 4
+          def: parseInt(lines[i+4]) || 0, agi: parseInt(lines[i+5]) || 0,
+          lv: parseInt(lines[i+6]) || 1, exp: parseInt(lines[i+7]) || 0,
+          cur_hp: parseInt(lines[i+8]), el: parseInt(lines[i+9]) || 0
+        })
+      } else if (ver >= 4) {
+        r.push({
+          n: lines[i], e: lines[i+1],
+          hp: parseInt(lines[i+2]), atk: parseInt(lines[i+3]),
+          def: 0, agi: 0,
+          lv: parseInt(lines[i+4]) || 1, exp: 0,
+          cur_hp: parseInt(lines[i+5]), el: parseInt(lines[i+6]) || 0
+        })
+      } else {
+        r.push({
+          n: lines[i], e: lines[i+1],
+          hp: parseInt(lines[i+2]), atk: parseInt(lines[i+3]),
+          def: 0, agi: 0,
+          lv: parseInt(lines[i+4]) || 1, exp: 0,
+          cur_hp: parseInt(lines[i+5]), el: 4
         })
       }
-      return { uuid, active, inv, pets: r }
     }
+    return { uuid, active, inv, pets: r }
   } catch { return null }
   return null
 }
@@ -52,6 +78,6 @@ export function saveGame(pets, exports) {
   const c = exports.get_charms ? exports.get_charms() : 2
   const gc = exports.get_great_charms ? exports.get_great_charms() : 1
   const data = `${getUUID()}\n${exports.get_active()}\n${h}\n${r}\n${c}\n${gc}\n` +
-    pets.map(p => `${p.n}\n${p.e}\n${p.hp}\n${p.atk}\n${p.lv}\n${p.cur_hp}\n${p.el ?? 4}`).join('\n') + '\n'
-  localStorage.setItem(SAVE_KEY, `5\n${checksum(data)}\n${data}`)
+    pets.map(p => `${p.n}\n${p.e}\n${p.hp}\n${p.atk}\n${p.def ?? 0}\n${p.agi ?? 0}\n${p.lv ?? 1}\n${p.exp ?? 0}\n${p.cur_hp}\n${p.el ?? 4}`).join('\n') + '\n'
+  localStorage.setItem(SAVE_KEY, `6\n${checksum(data)}\n${data}`)
 }

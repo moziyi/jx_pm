@@ -44,8 +44,36 @@ fn roll_stat(base : Int) -> Int {
   }
 }
 
+// ── DEF / AGI 系统 ─────────────────────────────────────────────────────────
+
 ///|
-fn enemy_attack_raw() -> Int {
+fn calc_def_reduce(raw : Int, def : Int) -> Int {
+  let reduce = (def.to_double() * 0.4).to_int()
+  let dmg = raw - reduce
+  if dmg < 1 {
+    1
+  } else {
+    dmg
+  }
+}
+
+///|
+fn roll_dodge(agi : Int) -> Bool {
+  let rate = agi.to_double() * 0.005
+  let clamped = if rate > 0.2 { 0.2 } else { rate }
+  math_random() < clamped
+}
+
+///|
+fn player_goes_first() -> Bool {
+  let pet = _state.owned[_state.active]
+  pet.agi >= _state.enemy_agi
+}
+
+// ── 敌人攻击（内部） ───────────────────────────────────────────────────────
+
+///|
+fn calc_enemy_raw() -> Int {
   let raw = roll_damage(_state.enemy_atk, 4)
   let eff = battle_effect(
     _state.enemy_element,
@@ -74,10 +102,32 @@ fn enemy_attack_raw() -> Int {
 }
 
 ///|
+fn enemy_attack_full() -> Int {
+  let pet = _state.owned[_state.active]
+  if roll_dodge(pet.agi) {
+    _result.dodged = true
+    return 0
+  }
+  _result.dodged = false
+  let raw = calc_enemy_raw()
+  if raw == 0 {
+    return 0
+  }
+  let dmg = calc_def_reduce(raw, pet.def)
+  _state.player_hp = clamp_min(_state.player_hp - dmg, 0)
+  dmg
+}
+
+// ── 敌方回合判定 ───────────────────────────────────────────────────────────
+
+///|
+fn enemy_turn() -> Int {
+  enemy_attack_full()
+}
+
+///|
 fn enemy_counter_attack() -> Int {
-  let d = enemy_attack_raw()
-  _state.player_hp = clamp_min(_state.player_hp - d, 0)
-  d
+  enemy_attack_full()
 }
 
 // ── 公开行动 ──────────────────────────────────────────────────────────────
@@ -87,23 +137,55 @@ pub fn player_attack() -> Unit {
   if _state.player_hp <= 0 {
     return
   }
-  let dealt = roll_damage(_state.player_atk, 6)
-  _state.enemy_hp = clamp_min(_state.enemy_hp - dealt, 0)
-  let enemy_defeated = _state.enemy_hp <= 0
-  let taken = if enemy_defeated { 0 } else { enemy_counter_attack() }
-  let player_defeated = _state.player_hp <= 0
-  _result.damage_dealt = dealt
-  _result.damage_taken = taken
-  _result.catch_success = false
-  _result.catch_rate = 0.0
-  _result.enemy_defeated = enemy_defeated
-  _result.player_defeated = player_defeated
-  _result.message = if enemy_defeated {
-    "你造成了 \{dealt} 点伤害。\{_state.enemy_name} 被击败了！"
-  } else if player_defeated {
-    "你造成了 \{dealt} 点伤害，但受到 \{taken} 点反击。\{_state.owned[_state.active].name} 倒下了…"
+  _result.dodged = false
+  let pet = _state.owned[_state.active]
+  if player_goes_first() {
+    let dealt = roll_damage(_state.player_atk, 6)
+    _state.enemy_hp = clamp_min(_state.enemy_hp - dealt, 0)
+    let enemy_defeated = _state.enemy_hp <= 0
+    let taken = if enemy_defeated { 0 } else { enemy_counter_attack() }
+    let player_defeated = _state.player_hp <= 0
+    _result.damage_dealt = dealt
+    _result.damage_taken = taken
+    _result.catch_success = false
+    _result.catch_rate = 0.0
+    _result.enemy_defeated = enemy_defeated
+    _result.player_defeated = player_defeated
+    _result.message = if enemy_defeated {
+      "你造成了 \{dealt} 点伤害。\{_state.enemy_name} 被击败了！"
+    } else if _result.dodged {
+      "你造成了 \{dealt} 点伤害。\{_state.enemy_name} 的攻击被闪避了！"
+    } else if player_defeated {
+      "你造成了 \{dealt} 点伤害，但受到 \{taken} 点反击。\{pet.name} 倒下了…"
+    } else {
+      "你造成了 \{dealt} 点伤害，受到 \{taken} 点反击。敌人还剩 \{_state.enemy_hp} HP。"
+    }
   } else {
-    "你造成了 \{dealt} 点伤害，受到 \{taken} 点反击。敌人还剩 \{_state.enemy_hp} HP。"
+    let taken = enemy_turn()
+    let player_defeated = _state.player_hp <= 0
+    let dealt = if player_defeated {
+      0
+    } else {
+      let d = roll_damage(_state.player_atk, 6)
+      _state.enemy_hp = clamp_min(_state.enemy_hp - d, 0)
+      d
+    }
+    let enemy_defeated = _state.enemy_hp <= 0
+    _result.damage_dealt = dealt
+    _result.damage_taken = taken
+    _result.catch_success = false
+    _result.catch_rate = 0.0
+    _result.enemy_defeated = enemy_defeated
+    _result.player_defeated = player_defeated
+    _result.message = if _result.dodged {
+      "闪避了\{_state.enemy_name} 的攻击！你造成 \{dealt} 点伤害。"
+    } else if player_defeated {
+      "\{_state.enemy_name} 先发制人造成 \{taken} 点伤害。\{pet.name} 倒下了…"
+    } else if enemy_defeated {
+      "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。你反击 \{dealt} 点，击败了它！"
+    } else {
+      "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。你反击 \{dealt} 点。敌人还剩 \{_state.enemy_hp} HP。"
+    }
   }
 }
 
@@ -112,55 +194,117 @@ pub fn elemental_skill() -> Unit {
   if _state.player_hp <= 0 {
     return
   }
+  _result.dodged = false
   let pet = _state.owned[_state.active]
-  let base = (pet.atk.to_double() * 1.3).to_int()
-  let raw = roll_damage(base, 8)
-  let eff = battle_effect(pet.element, _state.enemy_element)
-  match eff {
-    Generate => {
-      let heal = (raw.to_double() * 0.5).to_int()
-      _state.enemy_hp = if _state.enemy_hp + heal > _state.enemy_max_hp {
-        _state.enemy_max_hp
-      } else {
-        _state.enemy_hp + heal
+  if player_goes_first() {
+    let base = (pet.atk.to_double() * 1.3).to_int()
+    let raw = roll_damage(base, 8)
+    let eff = battle_effect(pet.element, _state.enemy_element)
+    match eff {
+      Generate => {
+        let heal = (raw.to_double() * 0.5).to_int()
+        _state.enemy_hp = if _state.enemy_hp + heal > _state.enemy_max_hp {
+          _state.enemy_max_hp
+        } else {
+          _state.enemy_hp + heal
+        }
+        let taken = enemy_counter_attack()
+        _result.damage_dealt = 0
+        _result.damage_taken = taken
+        _result.catch_success = false
+        _result.catch_rate = 0.0
+        _result.enemy_defeated = false
+        _result.player_defeated = _state.player_hp <= 0
+        _result.message = if _result.dodged {
+          "元素技为 \{_state.enemy_name} 恢复了 \{heal} HP…\{_state.enemy_name} 的攻击被闪避了！"
+        } else {
+          "元素技为 \{_state.enemy_name} 恢复了 \{heal} HP…受到 \{taken} 点反击。"
+        }
       }
-      let taken = enemy_counter_attack()
+      _ => {
+        let mult = effect_to_mult(eff)
+        let dmg = (raw.to_double() * mult).to_int()
+        let d = if dmg < 1 { 1 } else { dmg }
+        _state.enemy_hp = clamp_min(_state.enemy_hp - d, 0)
+        let ed = _state.enemy_hp <= 0
+        let taken = if ed { 0 } else { enemy_counter_attack() }
+        _result.damage_dealt = d
+        _result.damage_taken = taken
+        _result.catch_success = false
+        _result.catch_rate = 0.0
+        _result.enemy_defeated = ed
+        _result.player_defeated = _state.player_hp <= 0
+        _result.message = if ed {
+          "元素技造成 \{d} 点伤害！\{_state.enemy_name} 被击败了！"
+        } else if _result.player_defeated {
+          "元素技造成 \{d} 点伤害，但受到 \{taken} 点反击。\{pet.name} 倒下了…"
+        } else {
+          "元素技造成 \{d} 点伤害，受到 \{taken} 点反击。敌人还剩 \{_state.enemy_hp} HP。"
+        }
+      }
+    }
+  } else {
+    let taken = enemy_turn()
+    let player_defeated = _state.player_hp <= 0
+    if player_defeated {
       _result.damage_dealt = 0
       _result.damage_taken = taken
       _result.catch_success = false
       _result.catch_rate = 0.0
       _result.enemy_defeated = false
-      _result.player_defeated = _state.player_hp <= 0
-      _result.message = "元素技为 \{_state.enemy_name} 恢复了 \{heal} HP…受到 \{taken} 点反击。"
-    }
-    _ => {
-      let mult = effect_to_mult(eff)
-      let dmg = (raw.to_double() * mult).to_int()
-      let d = if dmg < 1 { 1 } else { dmg }
-      _state.enemy_hp = clamp_min(_state.enemy_hp - d, 0)
-      let ed = _state.enemy_hp <= 0
-      let taken = if ed { 0 } else { enemy_counter_attack() }
-      _result.damage_dealt = d
-      _result.damage_taken = taken
-      _result.catch_success = false
-      _result.catch_rate = 0.0
-      _result.enemy_defeated = ed
-      _result.player_defeated = _state.player_hp <= 0
-      _result.message = if ed {
-        "元素技造成 \{d} 点伤害！\{_state.enemy_name} 被击败了！"
-      } else if _result.player_defeated {
-        "元素技造成 \{d} 点伤害，但受到 \{taken} 点反击。\{pet.name} 倒下了…"
+      _result.player_defeated = true
+      _result.message = if _result.dodged {
+        "闪避了\{_state.enemy_name} 的攻击！但随后无法行动…"
       } else {
-        "元素技造成 \{d} 点伤害，受到 \{taken} 点反击。敌人还剩 \{_state.enemy_hp} HP。"
+        "\{_state.enemy_name} 先手造成 \{taken} 点伤害！\{pet.name} 倒下了…"
+      }
+    } else {
+      let base = (pet.atk.to_double() * 1.3).to_int()
+      let raw = roll_damage(base, 8)
+      let eff = battle_effect(pet.element, _state.enemy_element)
+      match eff {
+        Generate => {
+          let heal = (raw.to_double() * 0.5).to_int()
+          _state.enemy_hp = if _state.enemy_hp + heal > _state.enemy_max_hp {
+            _state.enemy_max_hp
+          } else {
+            _state.enemy_hp + heal
+          }
+          _result.damage_dealt = 0
+          _result.damage_taken = taken
+          _result.catch_success = false
+          _result.catch_rate = 0.0
+          _result.enemy_defeated = false
+          _result.player_defeated = false
+          _result.message = "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。元素技为 \{_state.enemy_name} 恢复了 \{heal} HP…"
+        }
+        _ => {
+          let mult = effect_to_mult(eff)
+          let dmg = (raw.to_double() * mult).to_int()
+          let d = if dmg < 1 { 1 } else { dmg }
+          _state.enemy_hp = clamp_min(_state.enemy_hp - d, 0)
+          let ed = _state.enemy_hp <= 0
+          _result.damage_dealt = d
+          _result.damage_taken = taken
+          _result.catch_success = false
+          _result.catch_rate = 0.0
+          _result.enemy_defeated = ed
+          _result.player_defeated = false
+          _result.message = if ed {
+            "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。元素技反击 \{d} 点，击败了它！"
+          } else {
+            "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。元素技反击 \{d} 点。敌人还剩 \{_state.enemy_hp} HP。"
+          }
+        }
       }
     }
   }
 }
 
-// 内部：执行捕捉逻辑，rate 为成功率
+// ── 捕捉（内部） ────────────────────────────────────────────────────────────
 
 ///|
-fn do_catch(rate : Double) -> Bool {
+fn resolve_catch(rate : Double) -> Bool {
   let success = math_random() < rate
   if success {
     let hp = roll_stat(_state.enemy_max_hp)
@@ -169,11 +313,22 @@ fn do_catch(rate : Double) -> Bool {
       emoji: _state.enemy_emoji,
       hp,
       atk: roll_stat(_state.enemy_atk),
-      lv: 1,
+      def: roll_stat(_state.enemy_def),
+      agi: roll_stat(_state.enemy_agi),
+      lv: _state.enemy_lv,
+      exp: 0,
       cur_hp: hp,
       element: _state.enemy_element,
     })
   }
+  success
+}
+
+// 内部：执行捕捉 + 失败时受反击（玩家先手用）
+
+///|
+fn do_catch(rate : Double) -> Bool {
+  let success = resolve_catch(rate)
   let taken = if success { 0 } else { enemy_counter_attack() }
   let player_defeated = _state.player_hp <= 0
   _result.damage_dealt = 0
@@ -195,7 +350,45 @@ fn do_catch(rate : Double) -> Bool {
 
 ///|
 pub fn try_catch() -> Unit {
-  do_catch(calc_catch_rate()) |> ignore
+  if _state.player_hp <= 0 {
+    return
+  }
+  _result.dodged = false
+  let rate = calc_catch_rate()
+  if player_goes_first() {
+    do_catch(rate) |> ignore
+  } else {
+    let taken = enemy_turn()
+    let player_defeated = _state.player_hp <= 0
+    if player_defeated {
+      _result.damage_dealt = 0
+      _result.damage_taken = taken
+      _result.catch_success = false
+      _result.catch_rate = rate
+      _result.enemy_defeated = false
+      _result.player_defeated = true
+      let pet = _state.owned[_state.active]
+      _result.message = if _result.dodged {
+        "闪避了攻击！但来不及捕捉…"
+      } else {
+        "\{_state.enemy_name} 先手造成 \{taken} 点伤害！\{pet.name} 倒下了…"
+      }
+    } else {
+      let success = resolve_catch(rate)
+      _result.damage_dealt = 0
+      _result.damage_taken = taken
+      _result.catch_success = success
+      _result.catch_rate = rate
+      _result.enemy_defeated = success
+      _result.player_defeated = false
+      let pct = (rate * 100.0).to_int()
+      _result.message = if success {
+        "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。捕捉成功！\{_state.enemy_name} 加入了你的队伍！"
+      } else {
+        "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。捕捉失败（\{pct}% 概率）。"
+      }
+    }
+  }
 }
 
 ///|
@@ -209,21 +402,59 @@ pub fn switch_pet(idx : Int) -> Bool {
   if idx == _state.active {
     return false
   }
-  _state.owned[_state.active].cur_hp = _state.player_hp
-  _state.active = idx
-  _state.player_hp = _state.owned[idx].cur_hp
-  _state.player_max_hp = _state.owned[idx].hp
-  _state.player_atk = _state.owned[idx].atk
-  let taken = enemy_counter_attack()
-  let player_defeated = _state.player_hp <= 0
-  _result.damage_dealt = 0
-  _result.damage_taken = taken
-  _result.catch_success = false
-  _result.catch_rate = 0.0
-  _result.enemy_defeated = false
-  _result.player_defeated = player_defeated
-  _result.message = "换上了 \{_state.owned[idx].name}！受到 \{taken} 点反击。"
-  return true
+  _result.dodged = false
+  if player_goes_first() {
+    _state.owned[_state.active].cur_hp = _state.player_hp
+    _state.active = idx
+    _state.player_hp = _state.owned[idx].cur_hp
+    _state.player_max_hp = _state.owned[idx].hp
+    _state.player_atk = _state.owned[idx].atk
+    let taken = enemy_counter_attack()
+    let player_defeated = _state.player_hp <= 0
+    _result.damage_dealt = 0
+    _result.damage_taken = taken
+    _result.catch_success = false
+    _result.catch_rate = 0.0
+    _result.enemy_defeated = false
+    _result.player_defeated = player_defeated
+    _result.message = "换上了 \{_state.owned[idx].name}！受到 \{taken} 点反击。"
+    return true
+  } else {
+    let taken = enemy_turn()
+    let old_pet = _state.owned[_state.active]
+    _state.owned[_state.active].cur_hp = _state.player_hp
+    let player_defeated = _state.player_hp <= 0
+    if player_defeated {
+      _result.damage_dealt = 0
+      _result.damage_taken = taken
+      _result.catch_success = false
+      _result.catch_rate = 0.0
+      _result.enemy_defeated = false
+      _result.player_defeated = true
+      _result.message = if _result.dodged {
+        "闪避了\{_state.enemy_name} 的攻击！但切换被打断了…"
+      } else {
+        "\{_state.enemy_name} 先手造成 \{taken} 点伤害！\{old_pet.name} 倒下了…"
+      }
+      return true
+    }
+    _state.active = idx
+    _state.player_hp = _state.owned[idx].cur_hp
+    _state.player_max_hp = _state.owned[idx].hp
+    _state.player_atk = _state.owned[idx].atk
+    _result.damage_dealt = 0
+    _result.damage_taken = taken
+    _result.catch_success = false
+    _result.catch_rate = 0.0
+    _result.enemy_defeated = false
+    _result.player_defeated = false
+    _result.message = if _result.dodged {
+      "闪避了\{_state.enemy_name} 的攻击！换上了 \{_state.owned[idx].name}。"
+    } else {
+      "\{_state.enemy_name} 先手攻击 \{old_pet.name} 造成 \{taken} 点伤害。换上了 \{_state.owned[idx].name}。"
+    }
+    return true
+  }
 }
 
 ///|

@@ -172,6 +172,19 @@ body {
   background:rgba(240,192,64,0.15); color:var(--el-metal);
 }
 .tag-stats { font-size:10px; color:var(--text-dim); font-family:monospace; }
+.tag-lv {
+  font-size:9px; font-weight:700; padding:1px 4px; border-radius:3px;
+  background:rgba(167,139,250,0.2); color:#a78bfa;
+}
+.tag-exp-wrap {
+  display:block; width:100%; height:3px;
+  background:rgba(255,255,255,0.06); border-radius:2px; margin-top:2px;
+}
+.tag-exp-fill {
+  display:block; height:100%; border-radius:2px;
+  background:linear-gradient(90deg, #4da6d9, #a78bfa);
+  transition:width 0.4s ease;
+}
 .empty-tip { font-size:11px; color:var(--text-dim); }
 
 /* ── 战斗界面 ────────────────────────────────────────────────── */
@@ -196,6 +209,7 @@ body {
   background:radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
 }
 .entity-name { font-size:13px; font-weight:600; letter-spacing:0.02em; }
+.entity-stats { font-size:9px; color:var(--text-dim); font-family:monospace; letter-spacing:0.03em; }
 
 .hp-wrap { width:120px; }
 .hp-label { display:flex; justify-content:space-between; font-size:10px; color:var(--text-dim); margin-bottom:4px; }

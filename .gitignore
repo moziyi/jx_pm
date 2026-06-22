@@ -4,3 +4,4 @@ _build
 # 编辑器/操作系统
 .DS_Store
 .vscode
+.claude

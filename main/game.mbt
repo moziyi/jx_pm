@@ -13,19 +13,14 @@ pub fn new_game() -> Unit {
   _inventory.revives = _init_inventory.revives
   _inventory.charms = _init_inventory.charms
   _inventory.great_charms = _init_inventory.great_charms
+  _result.exp_gained = 0
+  _result.leveled_up = false
+  _result.dodged = false
 }
 
 ///|
 pub fn start_battle(location_id : Int) -> Bool {
   let cfg = get_location(location_id)
-  _state.enemy_name = cfg.name
-  _state.enemy_emoji = cfg.emoji
-  _state.enemy_hp = cfg.hp
-  _state.enemy_max_hp = cfg.hp
-  _state.enemy_atk = cfg.atk
-  _state.enemy_element = cfg.element
-  _enemy_base.hp = cfg.hp
-  _enemy_base.atk = cfg.atk
   // 若 active 宠物战斗不能，自动切换
   if _state.owned[_state.active].cur_hp <= 0 {
     for i = 0; i < _state.owned.length(); i = i + 1 {
@@ -39,6 +34,32 @@ pub fn start_battle(location_id : Int) -> Bool {
   if pet.cur_hp <= 0 {
     return false
   }
+  // 确定敌人等级：基于出战宠物等级 ± 随机偏移
+  let lv_offset = (math_random() * 6.0).to_int() - 2
+  let raw_lv = pet.lv + lv_offset
+  let enemy_lv = if raw_lv < 1 {
+    1
+  } else if raw_lv > max_level {
+    max_level
+  } else {
+    raw_lv
+  }
+  _state.enemy_lv = enemy_lv
+  // 根据等级缩放敌人属性
+  let growth_hp = (enemy_lv - 1) * 4
+  let growth_atk = enemy_lv - 1
+  let growth_def = enemy_lv - 1
+  let growth_agi = enemy_lv - 1
+  _state.enemy_name = cfg.name
+  _state.enemy_emoji = cfg.emoji
+  _state.enemy_hp = cfg.hp + growth_hp
+  _state.enemy_max_hp = _state.enemy_hp
+  _state.enemy_atk = cfg.atk + growth_atk
+  _state.enemy_def = cfg.def + growth_def
+  _state.enemy_agi = cfg.agi + growth_agi
+  _state.enemy_element = cfg.element
+  _enemy_base.hp = _state.enemy_hp
+  _enemy_base.atk = _state.enemy_atk
   _state.player_hp = pet.cur_hp
   _state.player_max_hp = pet.hp
   _state.player_atk = pet.atk
@@ -53,8 +74,50 @@ fn sync_active_hp() -> Unit {
 
 ///|
 /// 战斗结束后提交状态（供 JS exitBattle 调用）
+
+///|
+fn grant_exp(gained : Int) -> Unit {
+  _result.exp_gained = gained
+  _result.leveled_up = false
+  let pet = _state.owned[_state.active]
+  pet.exp = pet.exp + gained
+  let mut leveled = false
+  while pet.lv < max_level && pet.exp >= exp_to_next(pet.lv) {
+    pet.exp = pet.exp - exp_to_next(pet.lv)
+    pet.lv = pet.lv + 1
+    pet.hp = pet.hp + 3 + (math_random() * 3.0).to_int()
+    pet.atk = pet.atk + 1 + (math_random() * 2.0).to_int()
+    pet.def = pet.def + 1
+    pet.agi = pet.agi + 1
+    pet.cur_hp = pet.hp
+    leveled = true
+  }
+  if pet.lv >= max_level {
+    pet.exp = 0
+  }
+  _result.leveled_up = leveled
+  _state.player_hp = pet.cur_hp
+  _state.player_max_hp = pet.hp
+  _state.player_atk = pet.atk
+}
+
+///|
 pub fn commit_battle() -> Unit {
   sync_active_hp()
+  if _result.enemy_defeated && !_result.player_defeated {
+    let raw = calc_exp_reward(
+      _state.enemy_max_hp,
+      _state.enemy_atk,
+      _state.enemy_def,
+      _state.enemy_agi,
+      _state.enemy_lv,
+    )
+    let gained = if _result.catch_success { raw / 2 } else { raw }
+    grant_exp(if gained < 1 { 1 } else { gained })
+  } else {
+    _result.exp_gained = 0
+    _result.leveled_up = false
+  }
 }
 
 ///|
@@ -73,14 +136,26 @@ pub fn clear_pets() -> Unit {
 }
 
 ///|
-pub fn add_pet(hp : Int, atk : Int, cur_hp : Int, element : Int) -> Int {
+pub fn add_pet(
+  hp : Int,
+  atk : Int,
+  def : Int,
+  agi : Int,
+  lv : Int,
+  exp : Int,
+  cur_hp : Int,
+  element : Int,
+) -> Int {
   let idx = _state.owned.length()
   _state.owned.push({
     name: "未知",
     emoji: "❓",
     hp,
     atk,
-    lv: 1,
+    def,
+    agi,
+    lv,
+    exp,
     cur_hp,
     element: int_to_element(element),
   })
@@ -96,6 +171,13 @@ pub fn set_active(idx : Int) -> Unit {
 
 ///|
 /// 自动切换到第一只存活的宠物
+
+///|
+pub fn recover_after_defeat() -> Unit {
+  auto_switch_active()
+}
+
+///|
 pub fn auto_switch_active() -> Unit {
   for i = 0; i < _state.owned.length(); i = i + 1 {
     if _state.owned[i].cur_hp > 0 {
@@ -301,12 +383,39 @@ pub fn get_owned_element(i : Int) -> Int {
   }
 }
 
+///|
+pub fn get_owned_def(i : Int) -> Int {
+  if i >= 0 && i < _state.owned.length() {
+    _state.owned[i].def
+  } else {
+    0
+  }
+}
+
+///|
+pub fn get_owned_agi(i : Int) -> Int {
+  if i >= 0 && i < _state.owned.length() {
+    _state.owned[i].agi
+  } else {
+    0
+  }
+}
+
+///|
+pub fn get_owned_exp(i : Int) -> Int {
+  if i >= 0 && i < _state.owned.length() {
+    _state.owned[i].exp
+  } else {
+    0
+  }
+}
+
 // ── 存档导出 ──────────────────────────────────────────────────────────────
 
 ///|
 pub fn export_save() -> String {
   let count = _state.owned.length()
-  let lines = "5\n"
+  let lines = "6\n"
   let mut data = _state.active.to_string() + "\n"
   data = data + _inventory.herbs.to_string() + "\n"
   data = data + _inventory.revives.to_string() + "\n"
@@ -317,7 +426,10 @@ pub fn export_save() -> String {
     data = data + _state.owned[i].emoji + "\n"
     data = data + _state.owned[i].hp.to_string() + "\n"
     data = data + _state.owned[i].atk.to_string() + "\n"
+    data = data + _state.owned[i].def.to_string() + "\n"
+    data = data + _state.owned[i].agi.to_string() + "\n"
     data = data + _state.owned[i].lv.to_string() + "\n"
+    data = data + _state.owned[i].exp.to_string() + "\n"
     data = data + _state.owned[i].cur_hp.to_string() + "\n"
     data = data + element_to_int(_state.owned[i].element).to_string() + "\n"
   }
@@ -371,6 +483,21 @@ pub fn get_enemy_emoji() -> String {
   _state.enemy_emoji
 }
 
+///|
+pub fn get_enemy_lv() -> Int {
+  _state.enemy_lv
+}
+
+///|
+pub fn get_enemy_def() -> Int {
+  _state.enemy_def
+}
+
+///|
+pub fn get_enemy_agi() -> Int {
+  _state.enemy_agi
+}
+
 // ── 行动结果 Getter ───────────────────────────────────────────────────────
 
 ///|
@@ -406,4 +533,19 @@ pub fn get_last_player_defeated() -> Bool {
 ///|
 pub fn get_last_enemy_defeated() -> Bool {
   _result.enemy_defeated
+}
+
+///|
+pub fn get_last_exp_gained() -> Int {
+  _result.exp_gained
+}
+
+///|
+pub fn get_last_leveled_up() -> Bool {
+  _result.leveled_up
+}
+
+///|
+pub fn get_last_dodged() -> Bool {
+  _result.dodged
 }

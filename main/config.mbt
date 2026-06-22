@@ -1,6 +1,7 @@
 // config.mbt — 游戏常量与配置
 
 // JS 互操作
+
 ///|
 fn math_random() -> Double = "env" "math_random"
 
@@ -70,19 +71,64 @@ priv struct LocationConfig {
   emoji : String
   hp : Int
   atk : Int
+  def : Int
+  agi : Int
   element : Element
 }
 
 ///|
 fn get_location(id : Int) -> LocationConfig {
   match id {
-    1 => { name: "幽林精灵", emoji: "🧚", hp: 35, atk: 8, element: Wood }
+    1 =>
+      {
+        name: "幽林精灵",
+        emoji: "🧚",
+        hp: 35,
+        atk: 8,
+        def: 3,
+        agi: 6,
+        element: Wood,
+      }
     2 =>
-      { name: "水晶蝙蝠", emoji: "🦇", hp: 28, atk: 10, element: Earth }
+      {
+        name: "水晶蝙蝠",
+        emoji: "🦇",
+        hp: 28,
+        atk: 10,
+        def: 5,
+        agi: 4,
+        element: Earth,
+      }
     3 =>
-      { name: "神殿卫士", emoji: "⚗️", hp: 50, atk: 14, element: Metal }
-    4 => { name: "月影水灵", emoji: "💧", hp: 32, atk: 7, element: Water }
-    _ => { name: "未知生物", emoji: "❓", hp: 30, atk: 9, element: Fire }
+      {
+        name: "神殿卫士",
+        emoji: "⚗️",
+        hp: 50,
+        atk: 14,
+        def: 8,
+        agi: 2,
+        element: Metal,
+      }
+    4 =>
+      {
+        name: "月影水灵",
+        emoji: "💧",
+        hp: 32,
+        atk: 7,
+        def: 2,
+        agi: 8,
+        element: Water,
+      }
+    _ =>
+      {
+        name: "未知生物",
+        emoji: "❓",
+        hp: 30,
+        atk: 9,
+        def: 4,
+        agi: 4,
+        element: Fire,
+      }
   }
 }
 
@@ -94,7 +140,10 @@ let _starter : CapturedEntry = {
   emoji: "🧚",
   hp: 35,
   atk: 8,
+  def: 3,
+  agi: 5,
   lv: 1,
+  exp: 0,
   cur_hp: 35,
   element: Fire,
 }
@@ -113,6 +162,35 @@ let _init_inventory : Inventory = {
 
 ///|
 let max_pets : Int = 5
+
+// 等级系统
+
+///|
+let max_level : Int = 50
+
+///|
+pub fn exp_to_next(lv : Int) -> Int {
+  if lv >= max_level {
+    0
+  } else {
+    15 + lv * lv * 10
+  }
+}
+
+///|
+pub fn get_max_level() -> Int {
+  max_level
+}
+
+///|
+fn calc_exp_reward(hp : Int, atk : Int, def : Int, agi : Int, lv : Int) -> Int {
+  let raw = hp + atk * 2 + def + agi + lv * 5
+  if raw < 1 {
+    1
+  } else {
+    raw
+  }
+}
 
 // 特殊事件类型
 

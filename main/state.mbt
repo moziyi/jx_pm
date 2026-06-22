@@ -1,12 +1,16 @@
 // state.mbt — 数据结构与全局状态
 // 已拥有宠物
+
 ///|
 priv struct CapturedEntry {
   name : String
   emoji : String
-  hp : Int
-  atk : Int
-  lv : Int
+  mut hp : Int
+  mut atk : Int
+  mut def : Int
+  mut agi : Int
+  mut lv : Int
+  mut exp : Int
   mut cur_hp : Int
   element : Element
 }
@@ -32,6 +36,9 @@ priv struct LastResult {
   mut catch_rate : Double
   mut player_defeated : Bool
   mut enemy_defeated : Bool
+  mut exp_gained : Int
+  mut leveled_up : Bool
+  mut dodged : Bool
 }
 
 // 游戏状态
@@ -44,6 +51,9 @@ priv struct GameState {
   mut enemy_hp : Int
   mut enemy_max_hp : Int
   mut enemy_atk : Int
+  mut enemy_def : Int
+  mut enemy_agi : Int
+  mut enemy_lv : Int
   mut enemy_name : String
   mut enemy_emoji : String
   mut enemy_element : Element
@@ -61,6 +71,9 @@ let _state : GameState = {
   enemy_hp: 0,
   enemy_max_hp: 0,
   enemy_atk: 0,
+  enemy_def: 0,
+  enemy_agi: 0,
+  enemy_lv: 0,
   enemy_name: "",
   enemy_emoji: "",
   enemy_element: Fire,
@@ -77,6 +90,9 @@ let _result : LastResult = {
   catch_rate: 0.0,
   player_defeated: false,
   enemy_defeated: false,
+  exp_gained: 0,
+  leveled_up: false,
+  dodged: false,
 }
 
 ///|
