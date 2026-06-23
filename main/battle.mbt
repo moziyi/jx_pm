@@ -74,30 +74,13 @@ fn player_goes_first() -> Bool {
 
 ///|
 fn calc_enemy_raw() -> Int {
-  let raw = roll_damage(_state.enemy_atk, 4)
-  let eff = battle_effect(
-    _state.enemy_element,
-    _state.owned[_state.active].element,
-  )
-  match eff {
-    Generate => {
-      let heal = (raw.to_double() * 0.5).to_int()
-      let pet = _state.owned[_state.active]
-      _state.player_hp = if _state.player_hp + heal > pet.hp {
-        pet.hp
-      } else {
-        _state.player_hp + heal
-      }
-      0
-    }
-    _ => {
-      let d = (raw.to_double() * effect_to_mult(eff)).to_int()
-      if d < 1 {
-        1
-      } else {
-        d
-      }
-    }
+  roll_damage(_state.enemy_atk, 4)
+}
+
+///|
+fn dec_cooldown() -> Unit {
+  if _state.skill_cooldown > 0 {
+    _state.skill_cooldown = _state.skill_cooldown - 1
   }
 }
 
@@ -160,6 +143,7 @@ pub fn player_attack() -> Unit {
     } else {
       "你造成了 \{dealt} 点伤害，受到 \{taken} 点反击。敌人还剩 \{_state.enemy_hp} HP。"
     }
+    dec_cooldown()
   } else {
     let taken = enemy_turn()
     let player_defeated = _state.player_hp <= 0
@@ -186,12 +170,16 @@ pub fn player_attack() -> Unit {
     } else {
       "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。你反击 \{dealt} 点。敌人还剩 \{_state.enemy_hp} HP。"
     }
+    dec_cooldown()
   }
 }
 
 ///|
 pub fn elemental_skill() -> Unit {
   if _state.player_hp <= 0 {
+    return
+  }
+  if _state.skill_cooldown > 0 {
     return
   }
   _result.dodged = false
@@ -299,6 +287,7 @@ pub fn elemental_skill() -> Unit {
       }
     }
   }
+  _state.skill_cooldown = 1
 }
 
 // ── 捕捉（内部） ────────────────────────────────────────────────────────────
@@ -389,6 +378,7 @@ pub fn try_catch() -> Unit {
       }
     }
   }
+  dec_cooldown()
 }
 
 ///|
@@ -418,7 +408,6 @@ pub fn switch_pet(idx : Int) -> Bool {
     _result.enemy_defeated = false
     _result.player_defeated = player_defeated
     _result.message = "换上了 \{_state.owned[idx].name}！受到 \{taken} 点反击。"
-    return true
   } else {
     let taken = enemy_turn()
     let old_pet = _state.owned[_state.active]
@@ -453,8 +442,9 @@ pub fn switch_pet(idx : Int) -> Bool {
     } else {
       "\{_state.enemy_name} 先手攻击 \{old_pet.name} 造成 \{taken} 点伤害。换上了 \{_state.owned[idx].name}。"
     }
-    return true
   }
+  dec_cooldown()
+  true
 }
 
 ///|

@@ -473,7 +473,15 @@ function setHp(who, cur, max) {
   $(`${who}-hp-text`).textContent = `${Math.max(0, cur)}/${max}`
 }
 function setLog(msg) { battleLog.textContent = msg }
-function setButtons(on) { [btnAttack, btnSkill, btnRun, btnUseHerb, btnUseRevive, btnUseCharm, btnUseGreatCharm].forEach(b => { if (b) b.disabled = !on }) }
+function setButtons(on) {
+  [btnAttack, btnRun, btnUseHerb, btnUseRevive, btnUseCharm, btnUseGreatCharm].forEach(b => { if (b) b.disabled = !on })
+  if (btnSkill) {
+    const cd = exports.get_skill_cooldown ? exports.get_skill_cooldown() : 0
+    btnSkill.disabled = !on || cd > 0
+    const sub = btnSkill.querySelector('.btn-sub')
+    if (sub) sub.textContent = cd > 0 ? '冷却中…' : '五行克制'
+  }
+}
 
 // ── 11. 启动 ───────────────────────────────────────────────────────────────
 renderPetList(); renderSwitchPanel(); updateItemCounts()

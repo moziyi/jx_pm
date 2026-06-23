@@ -60,6 +60,7 @@ priv struct GameState {
   mut owned : Array[CapturedEntry]
   mut active : Int
   mut stored : Array[CapturedEntry]
+  mut skill_cooldown : Int
 }
 
 // 全局实例
@@ -81,6 +82,7 @@ let _state : GameState = {
   owned: [_starter],
   active: 0,
   stored: [],
+  skill_cooldown: 0,
 }
 
 ///|

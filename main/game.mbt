@@ -17,6 +17,7 @@ pub fn new_game() -> Unit {
   _result.exp_gained = 0
   _result.leveled_up = false
   _result.dodged = false
+  _state.skill_cooldown = 0
 }
 
 ///|
@@ -640,6 +641,11 @@ pub fn get_player_max_hp() -> Int {
 ///|
 pub fn get_player_atk() -> Int {
   _state.player_atk
+}
+
+///|
+pub fn get_skill_cooldown() -> Int {
+  _state.skill_cooldown
 }
 
 ///|

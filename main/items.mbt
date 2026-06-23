@@ -81,6 +81,7 @@ pub fn use_herb() -> Bool {
       "\{_state.enemy_name} 先手造成 \{taken} 点伤害。使用了药草，恢复了 \{heal} 点 HP。"
     }
   }
+  dec_cooldown()
   return true
 }
 
@@ -128,6 +129,7 @@ pub fn use_revive(idx : Int) -> Bool {
       "\{_state.enemy_name} 先手造成 \{taken} 点伤害。用醒神草复苏了 \{_state.owned[idx].name}。"
     }
   }
+  dec_cooldown()
   return true
 }
 
