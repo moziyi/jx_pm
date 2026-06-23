@@ -1,5 +1,5 @@
 // main.js — 幻兽森林 应用逻辑
-import { ELEMENTS, STARTER_PET, INITIAL_ITEMS, SCENES, EVENTS, SPECIAL_EVENTS, weightedPick } from './config.js'
+import { ELEMENTS, STARTER_PET, INITIAL_ITEMS, SCENES, EVENTS, SPECIAL_EVENTS, POKEDEX, weightedPick } from './config.js'
 import { checksum, getUUID, loadGame, saveGame } from './storage.js'
 
 (async () => {
@@ -7,6 +7,16 @@ import { checksum, getUUID, loadGame, saveGame } from './storage.js'
 const wasmUrl = '/_build/wasm/release/build/main/main.wasm'
 let exports, mem, pets = [], storedPets = [], storedPage = 0
 let dragSrcIdx = -1, dragSrcStored = -1
+
+// ── 图鉴 ──
+const POKEDEX_KEY = 'phantom_pokedex'
+let pokedex = {}
+try { pokedex = JSON.parse(localStorage.getItem(POKEDEX_KEY)) || {} } catch { pokedex = {} }
+function savePokedex() { localStorage.setItem(POKEDEX_KEY, JSON.stringify(pokedex)) }
+function pokedexState(name) { return pokedex[name] || '' }
+function markEncountered(name) { if (!pokedex[name]) { pokedex[name] = 'seen'; savePokedex() } }
+function markCaught(name) { pokedex[name] = 'caught'; savePokedex() }
+function countDiscovered() { return Object.keys(pokedex).length }
 
 // ── 1. WASM 加载 ───────────────────────────────────────────────────────────
 try {
@@ -331,6 +341,7 @@ document.querySelectorAll('.marker').forEach(btn => {
         return
       }
       syncBattleUI()
+      markEncountered(ds(exports.get_enemy_name()))
       setLog(`遭遇了 ${ds(exports.get_enemy_name())}！选择你的行动。`)
       setButtons(true)
       petSwitchPanel.hidden = false
@@ -394,7 +405,7 @@ function handleResult() {
   setLog(ds(exports.get_last_message()))
   const won = exports.get_last_enemy_defeated(), lost = exports.get_last_player_defeated(), caught = exports.get_last_catch_success()
   if (caught || won) {
-    if (caught) syncFromMoonBit()
+    if (caught) { syncFromMoonBit(); markCaught(ds(exports.get_enemy_name())) }
     const max = exports.get_max_pets ? exports.get_max_pets() : 5
     const maxStored = exports.get_max_stored ? exports.get_max_stored() : 10
     if (pets.length > max) {
@@ -525,7 +536,10 @@ function syncBattleUI() {
   const elv = exports.get_enemy_lv ? exports.get_enemy_lv() : 1
   const edef = exports.get_enemy_def ? exports.get_enemy_def() : 0
   const eagi = exports.get_enemy_agi ? exports.get_enemy_agi() : 0
-  $('enemy-name').textContent = ds(exports.get_enemy_name()) + ' Lv' + elv + ' ' + (ELEMENTS[exports.get_enemy_element()] || '?')
+  const eName = ds(exports.get_enemy_name())
+  const eState = pokedexState(eName)
+  const badge = eState === 'caught' ? '📸' : eState === 'seen' ? '📷' : ''
+  $('enemy-name').textContent = (badge ? badge + ' ' : '') + eName + ' Lv' + elv + ' ' + (ELEMENTS[exports.get_enemy_element()] || '?')
   const enemyStats = $('enemy-stats')
   if (enemyStats) enemyStats.textContent = 'DEF:' + edef + ' AGI:' + eagi
   const active = exports.get_active()
@@ -536,6 +550,29 @@ function syncBattleUI() {
     if (playerStats) playerStats.textContent = 'DEF:' + (pets[active].def ?? 0) + ' AGI:' + (pets[active].agi ?? 0)
   }
   renderSwitchPanel()
+}
+
+function renderPokedex() {
+  const panel = $('pokedex-panel'); if (!panel) return
+  const total = 24; const discovered = countDiscovered()
+  $('pokedex-count').textContent = `${discovered}/${total}`
+  let html = ''
+  for (const [scene, monsters] of Object.entries(POKEDEX)) {
+    const sceneInfo = SCENES[scene]
+    html += `<div class="dex-group"><div class="dex-group-title">${sceneInfo.emoji} ${sceneInfo.name}</div><div class="dex-grid">`
+    for (const m of monsters) {
+      const state = pokedexState(m.n)
+      if (!state) {
+        html += `<span class="dex-entry unknown" title="???"><span class="dex-silhouette">⚫</span></span>`
+      } else if (state === 'seen') {
+        html += `<span class="dex-entry seen" title="???"><span class="dex-icon-sm">${m.e}</span></span>`
+      } else {
+        html += `<span class="dex-entry caught"><span class="dex-icon-sm">${m.e}</span><span class="dex-name">${m.n}</span><span class="dex-el">${ELEMENTS[m.el]}</span></span>`
+      }
+    }
+    html += `</div></div>`
+  }
+  panel.innerHTML = html
 }
 
 function setHp(who, cur, max) {
@@ -556,7 +593,11 @@ function setButtons(on) {
 }
 
 // ── 11. 启动 ───────────────────────────────────────────────────────────────
-renderPetList(); renderSwitchPanel(); updateItemCounts()
+$('btn-pokedex')?.addEventListener('click', () => {
+  const panel = $('pokedex-panel')
+  if (panel) { panel.hidden = !panel.hidden; if (!panel.hidden) renderPokedex() }
+})
+renderPetList(); renderSwitchPanel(); updateItemCounts(); renderPokedex()
 $('map-items').hidden = false
 console.log('✅ 幻兽森林已就绪')
 })()
