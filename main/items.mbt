@@ -113,25 +113,27 @@ pub fn use_revive(idx : Int) -> Bool {
   return true
 }
 
-///|
-pub fn use_charm() -> Bool {
-  if _inventory.charms <= 0 {
-    return false
+fn use_charm_with_bonus(bonus : Double, name : String, full_name : String, is_great : Bool) -> Bool {
+  if is_great {
+    if _inventory.great_charms <= 0 { return false }
+  } else {
+    if _inventory.charms <= 0 { return false }
   }
   if _state.player_hp <= 0 {
     return false
   }
   _result.dodged = false
-  _inventory.charms = _inventory.charms - 1
-  let rate = if calc_catch_rate() + 0.15 > 0.95 {
-    0.95
+  if is_great {
+    _inventory.great_charms = _inventory.great_charms - 1
   } else {
-    calc_catch_rate() + 0.15
+    _inventory.charms = _inventory.charms - 1
   }
+  let base_rate = calc_catch_rate()
+  let rate = if base_rate + bonus > 0.95 { 0.95 } else { base_rate + bonus }
   if player_goes_first() {
     let success = do_catch(rate)
     if success {
-      _result.message = "幻兽符成功！\{_state.enemy_name} 加入了你的队伍！（\{((rate)*100.0).to_int()}%）"
+      _result.message = "\{full_name}成功！\{_state.enemy_name} 加入了你的队伍！（\{((rate)*100.0).to_int()}%）"
     }
   } else {
     let taken = enemy_turn()
@@ -140,7 +142,7 @@ pub fn use_charm() -> Bool {
       set_result(0, taken, false, rate, false, true)
       let pet = _state.owned[_state.active]
       _result.message = if _result.dodged {
-        "闪避了攻击！但来不及使用幻兽符…"
+        "闪避了攻击！但来不及使用\{name}…"
       } else {
         "\{_state.enemy_name} 先手造成 \{taken} 点伤害！\{pet.name} 倒下了…"
       }
@@ -148,9 +150,9 @@ pub fn use_charm() -> Bool {
       let success = resolve_catch(rate)
       set_result(0, taken, success, rate, success, false)
       _result.message = if success {
-        "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。幻兽符成功！\{_state.enemy_name} 加入了你的队伍！（\{((rate)*100.0).to_int()}%）"
+        "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。\{full_name}成功！\{_state.enemy_name} 加入了你的队伍！（\{((rate)*100.0).to_int()}%）"
       } else {
-        "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。幻兽符失败（\{((rate)*100.0).to_int()}%）。"
+        "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。\{name}失败（\{((rate)*100.0).to_int()}%）。"
       }
     }
   }
@@ -158,47 +160,13 @@ pub fn use_charm() -> Bool {
 }
 
 ///|
+pub fn use_charm() -> Bool {
+  use_charm_with_bonus(0.15, "幻兽符", "幻兽符", false)
+}
+
+///|
 pub fn use_great_charm() -> Bool {
-  if _inventory.great_charms <= 0 {
-    return false
-  }
-  if _state.player_hp <= 0 {
-    return false
-  }
-  _result.dodged = false
-  _inventory.great_charms = _inventory.great_charms - 1
-  let rate = if calc_catch_rate() + 0.30 > 0.95 {
-    0.95
-  } else {
-    calc_catch_rate() + 0.30
-  }
-  if player_goes_first() {
-    let success = do_catch(rate)
-    if success {
-      _result.message = "高级幻兽符成功！\{_state.enemy_name} 加入了你的队伍！（\{((rate)*100.0).to_int()}%）"
-    }
-  } else {
-    let taken = enemy_turn()
-    let player_defeated = _state.player_hp <= 0
-    if player_defeated {
-      set_result(0, taken, false, rate, false, true)
-      let pet = _state.owned[_state.active]
-      _result.message = if _result.dodged {
-        "闪避了攻击！但来不及使用高级符…"
-      } else {
-        "\{_state.enemy_name} 先手造成 \{taken} 点伤害！\{pet.name} 倒下了…"
-      }
-    } else {
-      let success = resolve_catch(rate)
-      set_result(0, taken, success, rate, success, false)
-      _result.message = if success {
-        "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。高级符成功！\{_state.enemy_name} 加入了你的队伍！（\{((rate)*100.0).to_int()}%）"
-      } else {
-        "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。高级符失败（\{((rate)*100.0).to_int()}%）。"
-      }
-    }
-  }
-  return true
+  use_charm_with_bonus(0.30, "高级符", "高级幻兽符", true)
 }
 
 ///|
