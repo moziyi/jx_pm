@@ -9,6 +9,7 @@ pub fn new_game() -> Unit {
   _state.player_atk = _starter.atk
   _state.owned = [_starter]
   _state.active = 0
+  _state.stored = []
   _inventory.herbs = _init_inventory.herbs
   _inventory.revives = _init_inventory.revives
   _inventory.charms = _init_inventory.charms
@@ -221,6 +222,58 @@ pub fn get_active() -> Int {
   _state.active
 }
 
+///|
+pub fn store_pet(idx : Int) -> Bool {
+  if _state.owned.length() <= 1 {
+    return false
+  }
+  if idx < 0 || idx >= _state.owned.length() {
+    return false
+  }
+  if _state.stored.length() >= max_stored {
+    return false
+  }
+  let pet = _state.owned[idx]
+  _state.stored.push(pet)
+  let new_owned : Array[CapturedEntry] = []
+  for i = 0; i < _state.owned.length(); i = i + 1 {
+    if i != idx {
+      new_owned.push(_state.owned[i])
+    }
+  }
+  _state.owned = new_owned
+  if idx == _state.active {
+    _state.active = 0
+    let p = _state.owned[0]
+    _state.player_hp = p.cur_hp
+    _state.player_max_hp = p.hp
+    _state.player_atk = p.atk
+  } else if idx < _state.active {
+    _state.active = _state.active - 1
+  }
+  true
+}
+
+///|
+pub fn withdraw_pet(idx : Int) -> Bool {
+  if idx < 0 || idx >= _state.stored.length() {
+    return false
+  }
+  if _state.owned.length() >= max_pets {
+    return false
+  }
+  let pet = _state.stored[idx]
+  _state.owned.push(pet)
+  let new_stored : Array[CapturedEntry] = []
+  for i = 0; i < _state.stored.length(); i = i + 1 {
+    if i != idx {
+      new_stored.push(_state.stored[i])
+    }
+  }
+  _state.stored = new_stored
+  true
+}
+
 // ── HP 操作 ───────────────────────────────────────────────────────────────
 
 ///|
@@ -410,18 +463,117 @@ pub fn get_owned_exp(i : Int) -> Int {
   }
 }
 
+// ── 寄存宠物 getter ───────────────────────────────────────────────────────
+
+///|
+pub fn get_stored_count() -> Int {
+  _state.stored.length()
+}
+
+///|
+pub fn get_stored_name(i : Int) -> String {
+  if i >= 0 && i < _state.stored.length() {
+    _state.stored[i].name
+  } else {
+    ""
+  }
+}
+
+///|
+pub fn get_stored_emoji(i : Int) -> String {
+  if i >= 0 && i < _state.stored.length() {
+    _state.stored[i].emoji
+  } else {
+    ""
+  }
+}
+
+///|
+pub fn get_stored_hp(i : Int) -> Int {
+  if i >= 0 && i < _state.stored.length() {
+    _state.stored[i].hp
+  } else {
+    0
+  }
+}
+
+///|
+pub fn get_stored_atk(i : Int) -> Int {
+  if i >= 0 && i < _state.stored.length() {
+    _state.stored[i].atk
+  } else {
+    0
+  }
+}
+
+///|
+pub fn get_stored_def(i : Int) -> Int {
+  if i >= 0 && i < _state.stored.length() {
+    _state.stored[i].def
+  } else {
+    0
+  }
+}
+
+///|
+pub fn get_stored_agi(i : Int) -> Int {
+  if i >= 0 && i < _state.stored.length() {
+    _state.stored[i].agi
+  } else {
+    0
+  }
+}
+
+///|
+pub fn get_stored_lv(i : Int) -> Int {
+  if i >= 0 && i < _state.stored.length() {
+    _state.stored[i].lv
+  } else {
+    0
+  }
+}
+
+///|
+pub fn get_stored_exp(i : Int) -> Int {
+  if i >= 0 && i < _state.stored.length() {
+    _state.stored[i].exp
+  } else {
+    0
+  }
+}
+
+///|
+pub fn get_stored_cur_hp(i : Int) -> Int {
+  if i >= 0 && i < _state.stored.length() {
+    _state.stored[i].cur_hp
+  } else {
+    0
+  }
+}
+
+///|
+pub fn get_stored_element(i : Int) -> Int {
+  if i >= 0 && i < _state.stored.length() {
+    element_to_int(_state.stored[i].element)
+  } else {
+    0
+  }
+}
+
 // ── 存档导出 ──────────────────────────────────────────────────────────────
 
 ///|
 pub fn export_save() -> String {
-  let count = _state.owned.length()
-  let lines = "6\n"
+  let owned_count = _state.owned.length()
+  let stored_count = _state.stored.length()
+  let lines = "7\n"
   let mut data = _state.active.to_string() + "\n"
   data = data + _inventory.herbs.to_string() + "\n"
   data = data + _inventory.revives.to_string() + "\n"
   data = data + _inventory.charms.to_string() + "\n"
   data = data + _inventory.great_charms.to_string() + "\n"
-  for i = 0; i < count; i = i + 1 {
+  data = data + owned_count.to_string() + "\n"
+  for i = 0; i < owned_count; i = i + 1 {
     data = data + _state.owned[i].name + "\n"
     data = data + _state.owned[i].emoji + "\n"
     data = data + _state.owned[i].hp.to_string() + "\n"
@@ -432,6 +584,19 @@ pub fn export_save() -> String {
     data = data + _state.owned[i].exp.to_string() + "\n"
     data = data + _state.owned[i].cur_hp.to_string() + "\n"
     data = data + element_to_int(_state.owned[i].element).to_string() + "\n"
+  }
+  data = data + stored_count.to_string() + "\n"
+  for i = 0; i < stored_count; i = i + 1 {
+    data = data + _state.stored[i].name + "\n"
+    data = data + _state.stored[i].emoji + "\n"
+    data = data + _state.stored[i].hp.to_string() + "\n"
+    data = data + _state.stored[i].atk.to_string() + "\n"
+    data = data + _state.stored[i].def.to_string() + "\n"
+    data = data + _state.stored[i].agi.to_string() + "\n"
+    data = data + _state.stored[i].lv.to_string() + "\n"
+    data = data + _state.stored[i].exp.to_string() + "\n"
+    data = data + _state.stored[i].cur_hp.to_string() + "\n"
+    data = data + element_to_int(_state.stored[i].element).to_string() + "\n"
   }
   let checksum = calc_checksum(data)
   lines + checksum.to_string() + "\n" + data

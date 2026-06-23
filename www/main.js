@@ -5,7 +5,7 @@ import { checksum, getUUID, loadGame, saveGame } from './storage.js'
 (async () => {
 
 const wasmUrl = '/_build/wasm/release/build/main/main.wasm'
-let exports, mem, pets = []
+let exports, mem, pets = [], storedPets = []
 
 // ── 1. WASM 加载 ───────────────────────────────────────────────────────────
 try {
@@ -38,13 +38,14 @@ if (saved && saved.pets.length > 0) {
     exports.add_great_charms((saved.inv.great_charms || 1) - (exports.get_great_charms ? exports.get_great_charms() : 1))
   }
   pets = saved.pets
+  storedPets = saved.stored || []
 } else {
   exports.new_game()
   const n = exports.get_owned_count()
   for (let i = 0; i < n; i++) {
     pets.push({ n: ds(exports.get_owned_name(i)), e: ds(exports.get_owned_emoji(i)), hp: exports.get_owned_hp(i), atk: exports.get_owned_atk(i), def: exports.get_owned_def(i), agi: exports.get_owned_agi(i), lv: exports.get_owned_lv(i), exp: exports.get_owned_exp(i), cur_hp: exports.get_owned_cur_hp(i), el: exports.get_owned_element(i) })
   }
-  saveGame(pets, exports)
+  saveGame(pets, storedPets, exports)
 }
 
 function syncFromMoonBit() {
@@ -60,8 +61,27 @@ function syncFromMoonBit() {
     }
   }
   pets.length = count
+  const sc = exports.get_stored_count ? exports.get_stored_count() : 0
+  for (let i = 0; i < sc; i++) {
+    if (i >= storedPets.length) {
+      storedPets.push({
+        n: ds(exports.get_stored_name(i)), e: ds(exports.get_stored_emoji(i)),
+        hp: exports.get_stored_hp(i), atk: exports.get_stored_atk(i),
+        def: exports.get_stored_def(i), agi: exports.get_stored_agi(i),
+        lv: exports.get_stored_lv(i), exp: exports.get_stored_exp(i),
+        cur_hp: exports.get_stored_cur_hp(i), el: exports.get_stored_element(i)
+      })
+    } else {
+      const sp = storedPets[i]
+      sp.hp = exports.get_stored_hp(i); sp.atk = exports.get_stored_atk(i)
+      sp.def = exports.get_stored_def(i); sp.agi = exports.get_stored_agi(i)
+      sp.lv = exports.get_stored_lv(i); sp.exp = exports.get_stored_exp(i)
+      sp.cur_hp = exports.get_stored_cur_hp(i); sp.el = exports.get_stored_element(i)
+    }
+  }
+  storedPets.length = sc
   updateItemCounts()
-  saveGame(pets, exports)
+  saveGame(pets, storedPets, exports)
   renderPetList()
 }
 
@@ -102,6 +122,7 @@ function showEventPopup(msg) {
 // ── 6. 宠物列表 ────────────────────────────────────────────────────────────
 function renderPetList() {
   const max = exports.get_max_pets ? exports.get_max_pets() : 5
+  const maxStored = exports.get_max_stored ? exports.get_max_stored() : 10
   $('max-pets').textContent = max
   const active = exports.get_active()
   caughtCount.textContent = pets.length
@@ -109,8 +130,9 @@ function renderPetList() {
     const a = pets[active]
     if (a) $('active-pet').textContent = `${a.e} ${a.n} Lv${a.lv ?? 1} HP:${a.cur_hp}/${a.hp} ATK:${a.atk}`
   }
-  if (pets.length === 0) { capturedList.innerHTML = '<span class="empty-tip">还没有宠物</span>'; return }
-  capturedList.innerHTML = pets.map((p, i) => {
+  $('stored-count').textContent = storedPets.length
+  $('max-stored').textContent = maxStored
+  const renderTags = (list, isStored) => list.map((p, i) => {
     const el = ELEMENTS[p.el ?? 4] || '?'
     const dead = p.cur_hp <= 0
     const lv = p.lv ?? 1
@@ -118,7 +140,8 @@ function renderPetList() {
     const expNext = exports.exp_to_next ? exports.exp_to_next(lv) : 999
     const expPct = expNext > 0 ? Math.min(100, exp / expNext * 100) : 100
     const expBar = dead ? '' : `<span class="tag-exp-wrap"><span class="tag-exp-fill" style="width:${expPct}%"></span></span>`
-    return `<span class="captured-tag${i === active ? ' active-pet' : ''}${dead ? ' fainted' : ''}" data-idx="${i}" title="HP:${p.cur_hp}/${p.hp} ATK:${p.atk} DEF:${p.def??0} AGI:${p.agi??0} 元素:${el}${i===active?' ⚔️出战中':''}${dead?' 💀被击败':''}">
+    const cls = isStored ? ' stored-pet' : (i === active ? ' active-pet' : '') + (dead ? ' fainted' : '')
+    return `<span class="captured-tag${cls}" data-idx="${i}" data-stored="${isStored ? 1 : 0}" title="HP:${p.cur_hp}/${p.hp} ATK:${p.atk} DEF:${p.def??0} AGI:${p.agi??0} 元素:${el}${!isStored && i===active ? ' ⚔️出战中' : ''}${dead ? ' 💀被击败' : ''}${isStored ? ' 📦寄存中' : ''}">
       <span class="tag-emoji">${p.e}</span><span class="tag-name">${p.n}</span>
       <span class="tag-lv">Lv${lv}${lv >= (exports.get_max_level ? exports.get_max_level() : 50) ? ' MAX' : ''}</span>
       <span class="tag-element">${el}</span>
@@ -126,30 +149,56 @@ function renderPetList() {
       ${expBar}
     </span>`
   }).join('')
-  capturedList.querySelectorAll('.captured-tag').forEach(el => {
-    el.addEventListener('click', (e) => { e.stopPropagation(); showPetMenu(parseInt(el.dataset.idx), el) })
+  if (pets.length === 0) {
+    capturedList.innerHTML = '<span class="empty-tip">还没有宠物</span>'
+  } else {
+    capturedList.innerHTML = renderTags(pets, false)
+  }
+  const storedList = $('stored-list')
+  if (storedList) {
+    if (storedPets.length === 0) {
+      storedList.innerHTML = '<span class="empty-tip">寄存空间为空</span>'
+    } else {
+      storedList.innerHTML = renderTags(storedPets, true)
+    }
+  }
+  document.querySelectorAll('.captured-tag').forEach(el => {
+    el.addEventListener('click', (e) => { e.stopPropagation(); showPetMenu(parseInt(el.dataset.idx), parseInt(el.dataset.stored), el) })
   })
 }
 
-function showPetMenu(idx, anchor) {
+function showPetMenu(idx, stored, anchor) {
   const old = document.querySelector('.pet-popup'); if (old) old.remove()
   const popup = document.createElement('div'); popup.className = 'pet-popup'
   const rect = anchor.getBoundingClientRect()
-  popup.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.bottom+4}px;background:#16213e;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:4px;z-index:100;min-width:120px;`
-  const p = pets[idx], isActive = idx === exports.get_active(), onlyOne = pets.length <= 1, dead = p.cur_hp <= 0
+  popup.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.bottom+4}px;background:#16213e;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:4px;z-index:100;min-width:140px;`
+  const list = stored ? storedPets : pets
+  const p = list[idx]
+  const isActive = !stored && idx === exports.get_active()
+  const onlyOne = !stored && pets.length <= 1
+  const dead = p.cur_hp <= 0
+  const maxStored = exports.get_max_stored ? exports.get_max_stored() : 10
   const expNext = exports.exp_to_next ? exports.exp_to_next(p.lv ?? 1) : 999
-  popup.innerHTML = `
-    <div style="padding:6px 10px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:2px;">${p.e} ${p.n} <span style="color:#a78bfa;font-size:11px;">Lv${p.lv ?? 1}</span> <span style="color:#888;font-size:11px;">HP:${p.cur_hp}/${p.hp} ATK:${p.atk} DEF:${p.def??0} AGI:${p.agi??0} EXP:${p.exp??0}/${expNext}${dead?' 💀倒下':''}</span></div>
-    <button class="popup-btn" data-action="rename">✏️ 改名</button>
-    <button class="popup-btn" data-action="setactive" ${isActive||dead?'disabled':''}>⚔️ ${isActive?'已是出战宠物':dead?'倒下':'设为出战'}</button>
-    <button class="popup-btn" data-action="release" style="color:#E24B4A;" ${onlyOne?'disabled':''}>🗑️ 放生</button>
-  `
+  const maxTeam = exports.get_max_pets ? exports.get_max_pets() : 5
+  let menuHtml = `
+    <div style="padding:6px 10px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:2px;">${p.e} ${p.n} <span style="color:#a78bfa;font-size:11px;">Lv${p.lv ?? 1}</span> <span style="color:#888;font-size:11px;">HP:${p.cur_hp}/${p.hp} ATK:${p.atk} DEF:${p.def??0} AGI:${p.agi??0} EXP:${p.exp??0}/${expNext}${dead?' 💀倒下':''}${stored?' 📦寄存中':''}</span></div>
+    <button class="popup-btn" data-action="rename">✏️ 改名</button>`
+  if (stored) {
+    menuHtml += `<button class="popup-btn" data-action="withdraw" ${pets.length >= maxTeam ? 'disabled' : ''}>📤 ${pets.length >= maxTeam ? '队伍已满' : '取回队伍'}</button>`
+  } else {
+    menuHtml += `<button class="popup-btn" data-action="setactive" ${isActive||dead?'disabled':''}>⚔️ ${isActive?'已是出战宠物':dead?'倒下':'设为出战'}</button>`
+    menuHtml += `<button class="popup-btn" data-action="store" ${onlyOne||storedPets.length>=maxStored?'disabled':''}>📦 ${storedPets.length>=maxStored?'寄存已满':'寄存'}</button>`
+    menuHtml += `<button class="popup-btn" data-action="release" style="color:#E24B4A;" ${onlyOne?'disabled':''}>🗑️ 放生</button>`
+  }
+  popup.innerHTML = menuHtml
   popup.querySelectorAll('.popup-btn').forEach(b => {
     b.addEventListener('click', () => {
       const a = b.dataset.action; popup.remove()
-      if (a === 'rename') { const n = prompt('为这只宠物取名：', p.n); if (n && n.trim()) { pets[idx].n = n.trim(); saveGame(pets, exports); renderPetList() } }
+      if (a === 'rename') { const n = prompt('为这只宠物取名：', p.n); if (n && n.trim()) { list[idx].n = n.trim(); saveGame(pets, storedPets, exports); renderPetList() } }
       else if (a === 'setactive') { exports.set_active(idx); syncFromMoonBit() }
       else if (a === 'release') { if (confirm(`确定要放生 ${p.e} ${p.n} 吗？此操作不可撤销。`)) { exports.release_pet(idx); syncFromMoonBit() } }
+      else if (a === 'store') { if (exports.store_pet(idx)) { syncFromMoonBit() } }
+      else if (a === 'withdraw') { if (exports.withdraw_pet(idx)) { syncFromMoonBit() } }
     })
   })
   document.body.appendChild(popup)
@@ -275,7 +324,18 @@ function handleResult() {
   if (caught || won) {
     if (caught) syncFromMoonBit()
     const max = exports.get_max_pets ? exports.get_max_pets() : 5
-    if (pets.length > max) { showReleasePicker(() => { exitBattle() }) } else { setTimeout(exitBattle, 1500) }
+    const maxStored = exports.get_max_stored ? exports.get_max_stored() : 10
+    if (pets.length > max) {
+      if (storedPets.length < maxStored) {
+        exports.store_pet(pets.length - 1)
+        syncFromMoonBit()
+        setLog(ds(exports.get_last_message()) + ` 队伍已满，${pets[pets.length-1]?.n || '新宠物'} 已自动寄存。`)
+      } else {
+        showReleasePicker(() => { exitBattle() })
+        return
+      }
+    }
+    setTimeout(exitBattle, 1500)
     return
   }
   if (lost) {

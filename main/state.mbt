@@ -59,6 +59,7 @@ priv struct GameState {
   mut enemy_element : Element
   mut owned : Array[CapturedEntry]
   mut active : Int
+  mut stored : Array[CapturedEntry]
 }
 
 // 全局实例
@@ -79,6 +80,7 @@ let _state : GameState = {
   enemy_element: Fire,
   owned: [_starter],
   active: 0,
+  stored: [],
 }
 
 ///|

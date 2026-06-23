@@ -183,6 +183,9 @@ let _init_inventory : Inventory = {
 ///|
 let max_pets : Int = 5
 
+///|
+let max_stored : Int = 10
+
 // 等级系统
 
 ///|

@@ -243,3 +243,8 @@ pub fn use_great_charm() -> Bool {
 pub fn get_max_pets() -> Int {
   max_pets
 }
+
+///|
+pub fn get_max_stored() -> Int {
+  max_stored
+}

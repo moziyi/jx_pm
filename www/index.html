@@ -17,7 +17,7 @@
     <div class="hud">
       <div class="hud-title">🗺 幻兽森林</div>
       <div class="hud-right">
-        出战：<span id="active-pet">🧚 小幽</span> | 已捕捉：<span id="caught-count">1</span>/<span id="max-pets">5</span> 只
+        出战：<span id="active-pet">🧚 小幽</span>
       </div>
     </div>
 
@@ -52,9 +52,15 @@
     <p class="hint">点击地图上的光点进入战斗</p>
 
     <div class="captured-section">
-      <div class="section-label">已捕捉</div>
+      <div class="section-label">队伍 (<span id="caught-count">1</span>/<span id="max-pets">5</span>)</div>
       <div id="captured-list" class="captured-list">
-        <span class="empty-tip">还没有捕捉到任何生物</span>
+        <span class="empty-tip">还没有宠物</span>
+      </div>
+    </div>
+    <div class="captured-section stored-section">
+      <div class="section-label">寄存 (<span id="stored-count">0</span>/<span id="max-stored">10</span>)</div>
+      <div id="stored-list" class="captured-list">
+        <span class="empty-tip">寄存空间为空</span>
       </div>
     </div>
   </div>
