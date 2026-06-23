@@ -356,6 +356,7 @@ body {
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   padding:20px;
 }
+.starter-overlay[hidden] { display:none; }
 .starter-title {
   font-size:22px; color:#c4b5fd; margin-bottom:24px; font-weight:bold;
 }
