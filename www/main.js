@@ -6,7 +6,7 @@ import { checksum, getUUID, loadGame, saveGame } from './storage.js'
 
 const wasmUrl = '/_build/wasm/release/build/main/main.wasm'
 let exports, mem, pets = [], storedPets = [], storedPage = 0
-let dragSrcIdx = -1, dragSrcStored = -1
+let dragSrcIdx = -1, dragSrcStored = -1, wasDragging = false
 
 // ── 图鉴 ──
 const POKEDEX_KEY = 'phantom_pokedex'
@@ -226,7 +226,10 @@ function renderPetList() {
     }
   }
   document.querySelectorAll('.captured-tag').forEach(el => {
-    el.addEventListener('click', (e) => { e.stopPropagation(); showPetMenu(parseInt(el.dataset.idx), parseInt(el.dataset.stored), el) })
+    el.addEventListener('click', (e) => {
+      if (wasDragging) { wasDragging = false; return }
+      e.stopPropagation(); showPetMenu(parseInt(el.dataset.idx), parseInt(el.dataset.stored), el)
+    })
   })
   // 拖拽排序
   ;[capturedList, $('stored-list')].forEach(list => {
@@ -236,6 +239,7 @@ function renderPetList() {
       if (!tag) return
       dragSrcIdx = parseInt(tag.dataset.idx)
       dragSrcStored = parseInt(tag.dataset.stored)
+      wasDragging = true
       e.dataTransfer.effectAllowed = 'move'
       tag.style.opacity = '0.4'
     }
