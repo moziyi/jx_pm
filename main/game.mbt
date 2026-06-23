@@ -195,6 +195,7 @@ pub fn recover_after_defeat() -> Unit {
 
 ///|
 pub fn auto_switch_active() -> Unit {
+  _state.owned[_state.active].cur_hp = _state.player_hp
   for i = 0; i < _state.owned.length(); i = i + 1 {
     if _state.owned[i].cur_hp > 0 {
       _state.active = i
