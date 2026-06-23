@@ -120,6 +120,26 @@ function showEventPopup(msg) {
 }
 
 // ── 6. 宠物列表 ────────────────────────────────────────────────────────────
+function renderPetTagHTML(p, idx, isStored, isActive) {
+  const el = ELEMENTS[p.el ?? 4] || '?'
+  const dead = p.cur_hp <= 0
+  const lv = p.lv ?? 1
+  const exp = p.exp ?? 0
+  const expNext = exports.exp_to_next ? exports.exp_to_next(lv) : 999
+  const expPct = expNext > 0 ? Math.min(100, exp / expNext * 100) : 100
+  const expBar = dead ? '' : `<span class="tag-exp-wrap"><span class="tag-exp-fill" style="width:${expPct}%"></span></span>`
+  const maxLv = exports.get_max_level ? exports.get_max_level() : 50
+  const cls = isStored ? ' stored-pet' : (isActive ? ' active-pet' : '') + (dead ? ' fainted' : '')
+  const extra = isStored ? ' 📦寄存中' : (isActive ? ' ⚔️出战中' : '') + (dead ? ' 💀被击败' : '')
+  return `<span class="captured-tag${cls}" data-idx="${idx}" data-stored="${isStored ? 1 : 0}" title="HP:${p.cur_hp}/${p.hp} ATK:${p.atk} DEF:${p.def??0} AGI:${p.agi??0} 元素:${el}${extra}">
+    <span class="tag-emoji">${p.e}</span><span class="tag-name">${p.n}</span>
+    <span class="tag-lv">Lv${lv}${lv >= maxLv ? ' MAX' : ''}</span>
+    <span class="tag-element">${el}</span>
+    <span class="tag-stats">${dead ? '💀' : p.cur_hp+'/'+p.hp}</span>
+    ${expBar}
+  </span>`
+}
+
 function renderPetList() {
   const max = exports.get_max_pets ? exports.get_max_pets() : 5
   const maxStored = exports.get_max_stored ? exports.get_max_stored() : 10
@@ -132,27 +152,10 @@ function renderPetList() {
   }
   $('stored-count').textContent = storedPets.length
   $('max-stored').textContent = maxStored
-  const renderTags = (list, isStored) => list.map((p, i) => {
-    const el = ELEMENTS[p.el ?? 4] || '?'
-    const dead = p.cur_hp <= 0
-    const lv = p.lv ?? 1
-    const exp = p.exp ?? 0
-    const expNext = exports.exp_to_next ? exports.exp_to_next(lv) : 999
-    const expPct = expNext > 0 ? Math.min(100, exp / expNext * 100) : 100
-    const expBar = dead ? '' : `<span class="tag-exp-wrap"><span class="tag-exp-fill" style="width:${expPct}%"></span></span>`
-    const cls = isStored ? ' stored-pet' : (i === active ? ' active-pet' : '') + (dead ? ' fainted' : '')
-    return `<span class="captured-tag${cls}" data-idx="${i}" data-stored="${isStored ? 1 : 0}" title="HP:${p.cur_hp}/${p.hp} ATK:${p.atk} DEF:${p.def??0} AGI:${p.agi??0} 元素:${el}${!isStored && i===active ? ' ⚔️出战中' : ''}${dead ? ' 💀被击败' : ''}${isStored ? ' 📦寄存中' : ''}">
-      <span class="tag-emoji">${p.e}</span><span class="tag-name">${p.n}</span>
-      <span class="tag-lv">Lv${lv}${lv >= (exports.get_max_level ? exports.get_max_level() : 50) ? ' MAX' : ''}</span>
-      <span class="tag-element">${el}</span>
-      <span class="tag-stats">${dead ? '💀' : p.cur_hp+'/'+p.hp}</span>
-      ${expBar}
-    </span>`
-  }).join('')
   if (pets.length === 0) {
     capturedList.innerHTML = '<span class="empty-tip">还没有宠物</span>'
   } else {
-    capturedList.innerHTML = renderTags(pets, false)
+    capturedList.innerHTML = pets.map((p, i) => renderPetTagHTML(p, i, false, i === active)).join('')
   }
   const STORED_PAGE_SIZE = 20
   const storedList = $('stored-list')
@@ -169,23 +172,7 @@ function renderPetList() {
       const page = storedPets.slice(start, start + STORED_PAGE_SIZE)
       storedList.innerHTML = page.length === 0
         ? '<span class="empty-tip">寄存空间为空</span>'
-        : page.map((p, i) => {
-            const realIdx = start + i
-            const el = ELEMENTS[p.el ?? 4] || '?'
-            const dead = p.cur_hp <= 0
-            const lv = p.lv ?? 1
-            const exp = p.exp ?? 0
-            const expNext = exports.exp_to_next ? exports.exp_to_next(lv) : 999
-            const expPct = expNext > 0 ? Math.min(100, exp / expNext * 100) : 100
-            const expBar = dead ? '' : `<span class="tag-exp-wrap"><span class="tag-exp-fill" style="width:${expPct}%"></span></span>`
-            return `<span class="captured-tag stored-pet${dead?' fainted':''}" data-idx="${realIdx}" data-stored="1" title="HP:${p.cur_hp}/${p.hp} ATK:${p.atk} DEF:${p.def??0} AGI:${p.agi??0} 元素:${el}${dead?' 💀被击败' : ''} 📦寄存中">
-              <span class="tag-emoji">${p.e}</span><span class="tag-name">${p.n}</span>
-              <span class="tag-lv">Lv${lv}${lv >= (exports.get_max_level ? exports.get_max_level() : 50) ? ' MAX' : ''}</span>
-              <span class="tag-element">${el}</span>
-              <span class="tag-stats">${dead ? '💀' : p.cur_hp+'/'+p.hp}</span>
-              ${expBar}
-            </span>`
-          }).join('')
+        : page.map((p, i) => renderPetTagHTML(p, start + i, true, false)).join('')
       if (storedPager && totalPages > 1) {
         storedPager.innerHTML = `<button class="page-btn" data-page="prev" ${storedPage===0?'disabled':''}>◀</button><span class="page-info">${storedPage+1}/${totalPages}</span><button class="page-btn" data-page="next" ${storedPage>=totalPages-1?'disabled':''}>▶</button>`
         storedPager.querySelectorAll('.page-btn').forEach(b => {
