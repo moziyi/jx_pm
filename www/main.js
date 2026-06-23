@@ -256,6 +256,7 @@ function showPetMenu(idx, stored, anchor) {
     <button class="popup-btn" data-action="rename">✏️ 改名</button>`
   if (stored) {
     menuHtml += `<button class="popup-btn" data-action="withdraw" ${pets.length >= maxTeam ? 'disabled' : ''}>📤 ${pets.length >= maxTeam ? '队伍已满' : '取回队伍'}</button>`
+    menuHtml += `<button class="popup-btn" data-action="release" style="color:#E24B4A;">🗑️ 放生</button>`
   } else {
     menuHtml += `<button class="popup-btn" data-action="setactive" ${isActive||dead?'disabled':''}>⚔️ ${isActive?'已是出战宠物':dead?'倒下':'设为出战'}</button>`
     menuHtml += `<button class="popup-btn" data-action="store" ${onlyOne||storedPets.length>=maxStored?'disabled':''}>📦 ${storedPets.length>=maxStored?'寄存已满':'寄存'}</button>`
@@ -267,7 +268,7 @@ function showPetMenu(idx, stored, anchor) {
       const a = b.dataset.action; popup.remove()
       if (a === 'rename') { const n = prompt('为这只宠物取名：', p.n); if (n && n.trim()) { list[idx].n = n.trim(); saveGame(pets, storedPets, exports); renderPetList() } }
       else if (a === 'setactive') { exports.set_active(idx); syncFromMoonBit() }
-      else if (a === 'release') { if (confirm(`确定要放生 ${p.e} ${p.n} 吗？此操作不可撤销。`)) { exports.release_pet(idx); syncFromMoonBit() } }
+      else if (a === 'release') { if (confirm(`确定要放生 ${p.e} ${p.n} 吗？此操作不可撤销。`)) { if (stored) { exports.release_stored_pet(idx) } else { exports.release_pet(idx) }; syncFromMoonBit() } }
       else if (a === 'store') { if (exports.store_pet(idx)) { syncFromMoonBit() } }
       else if (a === 'withdraw') { if (exports.withdraw_pet(idx)) { syncFromMoonBit() } }
     })
