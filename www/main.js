@@ -36,20 +36,23 @@ function ds(ptr) {
   return new TextDecoder('utf-16le').decode(mem.slice(ptr, ptr + len * 2))
 }
 // 将 JS 字符串写入 WASM 内存（UTF-16LE，4字节长度前缀），返回指针
+let _esOff = 0 // 递增偏移，复用已分配空间
 function es(str) {
   const len = str.length
   const need = 4 + len * 2
-  const oldSize = mem.length
-  const pages = Math.ceil((oldSize + need) / 65536)
-  const curPages = oldSize / 65536
-  if (pages > curPages) { exports.memory.grow(pages - curPages); mem = new Uint8Array(exports.memory.buffer) }
-  const base = oldSize
+  if (_esOff + need > exports.memory.buffer.byteLength) {
+    const delta = _esOff + need - exports.memory.buffer.byteLength
+    exports.memory.grow(Math.ceil(delta / 65536))
+    mem = new Uint8Array(exports.memory.buffer)
+  }
+  const base = _esOff
   new DataView(mem.buffer).setUint32(base, len, true)
   for (let i = 0; i < len; i++) {
     const c = str.charCodeAt(i)
     mem[base + 4 + i * 2] = c & 0xff
     mem[base + 4 + i * 2 + 1] = (c >> 8) & 0xff
   }
+  _esOff = base + need
   return base + 4
 }
 
