@@ -1,12 +1,12 @@
 // main.js — 幻兽森林 应用逻辑
-import { ELEMENTS, STARTER_PET, INITIAL_ITEMS, SCENES, EVENTS, SPECIAL_EVENTS, POKEDEX, weightedPick } from './config.js'
+import { ELEMENTS, STARTER_PET, INITIAL_ITEMS, SCENES, EVENTS, SPECIAL_EVENTS, POKEDEX, STARTERS, weightedPick } from './config.js'
 import { checksum, getUUID, loadGame, saveGame } from './storage.js'
 
 (async () => {
 
 const wasmUrl = './main.wasm'
 let exports, mem, pets = [], storedPets = [], storedPage = 0
-let dragSrcIdx = -1, dragSrcStored = -1
+let dragSrcIdx = -1, dragSrcStored = -1, wasDragging = false
 
 // ── 图鉴 ──
 const POKEDEX_KEY = 'phantom_pokedex'
@@ -51,12 +51,39 @@ if (saved && saved.pets.length > 0) {
   pets = saved.pets
   storedPets = saved.stored || []
 } else {
+  // 新游戏 → 先初始化 WASM，再显示选择面板
   exports.new_game()
-  const n = exports.get_owned_count()
-  for (let i = 0; i < n; i++) {
-    pets.push({ n: ds(exports.get_owned_name(i)), e: ds(exports.get_owned_emoji(i)), hp: exports.get_owned_hp(i), atk: exports.get_owned_atk(i), def: exports.get_owned_def(i), agi: exports.get_owned_agi(i), lv: exports.get_owned_lv(i), exp: exports.get_owned_exp(i), cur_hp: exports.get_owned_cur_hp(i), el: exports.get_owned_element(i) })
-  }
-  saveGame(pets, storedPets, exports)
+  showStarterPick()
+}
+
+function showStarterPick() {
+  const panel = $('starter-pick')
+  if (!panel) return
+  panel.hidden = false
+  $('map-view').hidden = true
+  const cards = $('starter-cards')
+  cards.innerHTML = STARTERS.map((s, i) => {
+    const el = ELEMENTS[s.el] || '?'
+    return `<button class="starter-card" data-idx="${i}">
+      <span class="starter-emoji">${s.e}</span>
+      <span class="starter-name">${s.n}</span>
+      <span class="starter-el">${el}</span>
+      <span class="starter-desc">${s.desc}</span>
+      <span class="starter-stats">HP:${s.hp} ATK:${s.atk} DEF:${s.def} AGI:${s.agi}</span>
+    </button>`
+  }).join('')
+  cards.querySelectorAll('.starter-card').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const s = STARTERS[parseInt(btn.dataset.idx)]
+      exports.clear_pets()
+      exports.add_pet(s.hp, s.atk, s.def, s.agi, 1, 0, s.hp, s.el)
+      exports.set_active(0)
+      markCaught(s.n)
+      panel.hidden = true
+      $('map-view').hidden = false
+      syncFromMoonBit()
+    })
+  })
 }
 
 function syncFromMoonBit() {
@@ -199,7 +226,10 @@ function renderPetList() {
     }
   }
   document.querySelectorAll('.captured-tag').forEach(el => {
-    el.addEventListener('click', (e) => { e.stopPropagation(); showPetMenu(parseInt(el.dataset.idx), parseInt(el.dataset.stored), el) })
+    el.addEventListener('click', (e) => {
+      if (wasDragging) { wasDragging = false; return }
+      e.stopPropagation(); showPetMenu(parseInt(el.dataset.idx), parseInt(el.dataset.stored), el)
+    })
   })
   // 拖拽排序
   ;[capturedList, $('stored-list')].forEach(list => {
@@ -209,6 +239,7 @@ function renderPetList() {
       if (!tag) return
       dragSrcIdx = parseInt(tag.dataset.idx)
       dragSrcStored = parseInt(tag.dataset.stored)
+      wasDragging = true
       e.dataTransfer.effectAllowed = 'move'
       tag.style.opacity = '0.4'
     }
