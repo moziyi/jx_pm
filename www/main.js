@@ -6,6 +6,7 @@ import { checksum, getUUID, loadGame, saveGame } from './storage.js'
 
 const wasmUrl = '/_build/wasm/release/build/main/main.wasm'
 let exports, mem, pets = [], storedPets = [], storedPage = 0
+let dragSrcIdx = -1, dragSrcStored = -1
 
 // ── 1. WASM 加载 ───────────────────────────────────────────────────────────
 try {
@@ -131,7 +132,7 @@ function renderPetTagHTML(p, idx, isStored, isActive) {
   const maxLv = exports.get_max_level ? exports.get_max_level() : 50
   const cls = isStored ? ' stored-pet' : (isActive ? ' active-pet' : '') + (dead ? ' fainted' : '')
   const extra = isStored ? ' 📦寄存中' : (isActive ? ' ⚔️出战中' : '') + (dead ? ' 💀被击败' : '')
-  return `<span class="captured-tag${cls}" data-idx="${idx}" data-stored="${isStored ? 1 : 0}" title="HP:${p.cur_hp}/${p.hp} ATK:${p.atk} DEF:${p.def??0} AGI:${p.agi??0} 元素:${el}${extra}">
+  return `<span class="captured-tag${cls}" draggable="true" data-idx="${idx}" data-stored="${isStored ? 1 : 0}" title="HP:${p.cur_hp}/${p.hp} ATK:${p.atk} DEF:${p.def??0} AGI:${p.agi??0} 元素:${el}${extra}">
     <span class="tag-emoji">${p.e}</span><span class="tag-name">${p.n}</span>
     <span class="tag-lv">Lv${lv}${lv >= maxLv ? ' MAX' : ''}</span>
     <span class="tag-element">${el}</span>
@@ -189,6 +190,51 @@ function renderPetList() {
   }
   document.querySelectorAll('.captured-tag').forEach(el => {
     el.addEventListener('click', (e) => { e.stopPropagation(); showPetMenu(parseInt(el.dataset.idx), parseInt(el.dataset.stored), el) })
+  })
+  // 拖拽排序
+  ;[capturedList, $('stored-list')].forEach(list => {
+    if (!list) return
+    list.ondragstart = (e) => {
+      const tag = e.target.closest('.captured-tag')
+      if (!tag) return
+      dragSrcIdx = parseInt(tag.dataset.idx)
+      dragSrcStored = parseInt(tag.dataset.stored)
+      e.dataTransfer.effectAllowed = 'move'
+      tag.style.opacity = '0.4'
+    }
+    list.ondragend = (e) => {
+      const tag = e.target.closest('.captured-tag')
+      if (tag) tag.style.opacity = ''
+      dragSrcIdx = -1; dragSrcStored = -1
+      list.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'))
+    }
+    list.ondragover = (e) => {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'move'
+      const tag = e.target.closest('.captured-tag')
+      if (!tag || parseInt(tag.dataset.stored) !== dragSrcStored) return
+      list.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'))
+      tag.classList.add('drag-over')
+    }
+    list.ondragleave = (e) => {
+      const tag = e.target.closest('.captured-tag')
+      if (tag) tag.classList.remove('drag-over')
+    }
+    list.ondrop = (e) => {
+      e.preventDefault()
+      const tag = e.target.closest('.captured-tag')
+      list.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'))
+      if (!tag || dragSrcIdx < 0) return
+      const dstIdx = parseInt(tag.dataset.idx)
+      const dstStored = parseInt(tag.dataset.stored)
+      if (dragSrcStored !== dstStored || dragSrcIdx === dstIdx) return
+      if (dragSrcStored) {
+        exports.reorder_stored(dragSrcIdx, dstIdx)
+      } else {
+        exports.reorder_owned(dragSrcIdx, dstIdx)
+      }
+      syncFromMoonBit()
+    }
   })
 }
 

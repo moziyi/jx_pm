@@ -238,6 +238,64 @@ pub fn get_active() -> Int {
   _state.active
 }
 
+/// 队伍内拖拽排序
+pub fn reorder_owned(from : Int, to : Int) -> Bool {
+  let len = _state.owned.length()
+  if from < 0 || from >= len || to < 0 || to >= len || from == to {
+    return false
+  }
+  let pet = _state.owned[from]
+  let new_arr : Array[CapturedEntry] = []
+  for i = 0; i < len; i = i + 1 {
+    if i != from {
+      new_arr.push(_state.owned[i])
+    }
+  }
+  let result : Array[CapturedEntry] = []
+  for i = 0; i < to; i = i + 1 {
+    result.push(new_arr[i])
+  }
+  result.push(pet)
+  for i = to; i < new_arr.length(); i = i + 1 {
+    result.push(new_arr[i])
+  }
+  _state.owned = result
+  // 调整 active 索引
+  if _state.active == from {
+    _state.active = to
+  } else if from < _state.active && _state.active <= to {
+    _state.active = _state.active - 1
+  } else if to <= _state.active && _state.active < from {
+    _state.active = _state.active + 1
+  }
+  true
+}
+
+/// 寄存箱内拖拽排序
+pub fn reorder_stored(from : Int, to : Int) -> Bool {
+  let len = _state.stored.length()
+  if from < 0 || from >= len || to < 0 || to >= len || from == to {
+    return false
+  }
+  let pet = _state.stored[from]
+  let new_arr : Array[CapturedEntry] = []
+  for i = 0; i < len; i = i + 1 {
+    if i != from {
+      new_arr.push(_state.stored[i])
+    }
+  }
+  let result : Array[CapturedEntry] = []
+  for i = 0; i < to; i = i + 1 {
+    result.push(new_arr[i])
+  }
+  result.push(pet)
+  for i = to; i < new_arr.length(); i = i + 1 {
+    result.push(new_arr[i])
+  }
+  _state.stored = result
+  true
+}
+
 ///|
 pub fn store_pet(idx : Int) -> Bool {
   if _state.owned.length() <= 1 {

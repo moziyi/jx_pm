@@ -314,3 +314,8 @@ body {
   .avatar { width:56px; height:56px; font-size:24px; }
   .hp-wrap { width:90px; }
 }
+
+/* 拖拽排序 */
+.captured-tag[draggable="true"] { cursor:grab; }
+.captured-tag[draggable="true"]:active { cursor:grabbing; }
+.captured-tag.drag-over { outline:2px dashed #a78bfa; outline-offset:-2px; }
