@@ -171,9 +171,10 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
     const newPets = [];
     for (let i = 0; i < count; i++) {
       const id = exports.get_owned_id(i);
-      let p = petById[id];
+      let p = petById[id] || storedById[id];
       if (p) {
         delete petById[id];
+        delete storedById[id];
       } else {
         p = { id, n: ds(exports.get_owned_name(i)), e: ds(exports.get_owned_emoji(i)) };
       }
@@ -193,9 +194,10 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
     const newStored = [];
     for (let i = 0; i < sc; i++) {
       const id = exports.get_stored_id(i);
-      let p = storedById[id];
+      let p = storedById[id] || petById[id];
       if (p) {
         delete storedById[id];
+        delete petById[id];
       } else {
         p = { id, n: ds(exports.get_stored_name(i)), e: ds(exports.get_stored_emoji(i)) };
       }
