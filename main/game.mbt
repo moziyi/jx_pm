@@ -77,11 +77,7 @@ fn sync_active_hp() -> Unit {
 /// 战斗结束后提交状态（供 JS exitBattle 调用）
 
 ///|
-fn grant_exp(gained : Int) -> Unit {
-  _result.exp_gained = gained
-  _result.leveled_up = false
-  let pet = _state.owned[_state.active]
-  pet.exp = pet.exp + gained
+fn level_up_pet(pet : CapturedEntry) -> Bool {
   let mut leveled = false
   while pet.lv < max_level && pet.exp >= exp_to_next(pet.lv) {
     pet.exp = pet.exp - exp_to_next(pet.lv)
@@ -96,10 +92,28 @@ fn grant_exp(gained : Int) -> Unit {
   if pet.lv >= max_level {
     pet.exp = 0
   }
-  _result.leveled_up = leveled
+  leveled
+}
+
+///|
+fn grant_exp(gained : Int) -> Unit {
+  _result.exp_gained = gained
+  _result.leveled_up = false
+  let pet = _state.owned[_state.active]
+  pet.exp = pet.exp + gained
+  _result.leveled_up = level_up_pet(pet)
   _state.player_hp = pet.cur_hp
   _state.player_max_hp = pet.hp
   _state.player_atk = pet.atk
+  let shared = gained * 70 / 100
+  if shared > 0 {
+    for i = 0; i < _state.owned.length(); i = i + 1 {
+      if i != _state.active && _state.owned[i].cur_hp > 0 {
+        _state.owned[i].exp = _state.owned[i].exp + shared
+        level_up_pet(_state.owned[i]) |> ignore
+      }
+    }
+  }
 }
 
 ///|
