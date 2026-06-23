@@ -98,7 +98,9 @@ function syncFromMoonBit() {
   const count = exports.get_owned_count()
   for (let i = 0; i < count; i++) {
     if (i >= pets.length) {
-      pets.push({ n: ds(exports.get_owned_name(i)), e: ds(exports.get_owned_emoji(i)), hp: exports.get_owned_hp(i), atk: exports.get_owned_atk(i), def: exports.get_owned_def(i), agi: exports.get_owned_agi(i), lv: exports.get_owned_lv(i), exp: exports.get_owned_exp(i), cur_hp: exports.get_owned_cur_hp(i), el: exports.get_owned_element(i) })
+      const mbName = ds(exports.get_owned_name(i))
+      const mbEmoji = ds(exports.get_owned_emoji(i))
+      pets.push({ n: mbName, e: mbEmoji, hp: exports.get_owned_hp(i), atk: exports.get_owned_atk(i), def: exports.get_owned_def(i), agi: exports.get_owned_agi(i), lv: exports.get_owned_lv(i), exp: exports.get_owned_exp(i), cur_hp: exports.get_owned_cur_hp(i), el: exports.get_owned_element(i) })
     } else {
       pets[i].hp = exports.get_owned_hp(i); pets[i].atk = exports.get_owned_atk(i)
       pets[i].def = exports.get_owned_def(i); pets[i].agi = exports.get_owned_agi(i)
@@ -110,8 +112,10 @@ function syncFromMoonBit() {
   const sc = exports.get_stored_count ? exports.get_stored_count() : 0
   for (let i = 0; i < sc; i++) {
     if (i >= storedPets.length) {
+      const mbName = ds(exports.get_stored_name(i))
+      const mbEmoji = ds(exports.get_stored_emoji(i))
       storedPets.push({
-        n: ds(exports.get_stored_name(i)), e: ds(exports.get_stored_emoji(i)),
+        n: mbName, e: mbEmoji,
         hp: exports.get_stored_hp(i), atk: exports.get_stored_atk(i),
         def: exports.get_stored_def(i), agi: exports.get_stored_agi(i),
         lv: exports.get_stored_lv(i), exp: exports.get_stored_exp(i),
@@ -317,8 +321,8 @@ function showPetMenu(idx, stored, anchor) {
       if (a === 'rename') { const n = prompt('为这只宠物取名：', p.n); if (n && n.trim()) { list[idx].n = n.trim(); saveGame(pets, storedPets, exports); renderPetList() } }
       else if (a === 'setactive') { exports.set_active(idx); syncFromMoonBit() }
       else if (a === 'release') { if (confirm(`确定要放生 ${p.e} ${p.n} 吗？此操作不可撤销。`)) { if (stored) { exports.release_stored_pet(idx) } else { exports.release_pet(idx) }; syncFromMoonBit() } }
-      else if (a === 'store') { if (exports.store_pet(idx)) { syncFromMoonBit() } }
-      else if (a === 'withdraw') { if (exports.withdraw_pet(idx)) { syncFromMoonBit() } }
+      else if (a === 'store') { if (exports.store_pet(idx)) { const pet = pets.splice(idx, 1)[0]; storedPets.push(pet); syncFromMoonBit() } }
+      else if (a === 'withdraw') { if (exports.withdraw_pet(idx)) { const pet = storedPets.splice(idx, 1)[0]; pets.push(pet); syncFromMoonBit() } }
     })
   })
   document.body.appendChild(popup)
@@ -448,9 +452,12 @@ function handleResult() {
     const maxStored = exports.get_max_stored ? exports.get_max_stored() : 10
     if (pets.length > max) {
       if (storedPets.length < maxStored) {
-        exports.store_pet(pets.length - 1)
+        const lastPet = pets[pets.length - 1]
+        if (exports.store_pet(pets.length - 1)) {
+          storedPets.push(lastPet); pets.pop()
+        }
         syncFromMoonBit()
-        setLog(ds(exports.get_last_message()) + ` 队伍已满，${pets[pets.length-1]?.n || '新宠物'} 已自动寄存。`)
+        setLog(ds(exports.get_last_message()) + ` 队伍已满，${lastPet?.n || '新宠物'} 已自动寄存。`)
       } else {
         showReleasePicker(() => { exitBattle() })
         return
