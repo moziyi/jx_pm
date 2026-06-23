@@ -82,7 +82,9 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
   const saved = loadGame();
   if (saved && saved.pets.length > 0) {
     exports.clear_pets();
-    for (const p of saved.pets)
+    // 恢复所有宠物到队伍中（包含寄存的）
+    const allPets = [...saved.pets, ...(saved.stored || [])];
+    for (const p of allPets)
       exports.add_pet_with_id(
         p.id ?? 0,
         p.hp,
@@ -94,12 +96,18 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
         p.cur_hp,
         p.el ?? 4,
       );
-    // 同步 id 计数器：找到最大 id，确保 MoonBit 后续 id 不冲突
+    // 同步 id 计数器
     let maxId = 0;
-    for (const p of saved.pets) if ((p.id ?? 0) > maxId) maxId = p.id;
-    for (const p of saved.stored || []) if ((p.id ?? 0) > maxId) maxId = p.id;
+    for (const p of allPets) if ((p.id ?? 0) > maxId) maxId = p.id;
     exports.reset_next_id(maxId + 1);
     exports.set_active(saved.active);
+    // 把寄存的宠物移到寄存空间
+    if (saved.stored && saved.stored.length > 0 && saved.pets.length > 0) {
+      const storeIdx = saved.pets.length;
+      for (let i = 0; i < saved.stored.length; i++) {
+        exports.store_pet(storeIdx);
+      }
+    }
     if (saved.inv) {
       exports.add_herbs(saved.inv.herbs - exports.get_herbs());
       exports.add_revives(saved.inv.revives - exports.get_revives());
