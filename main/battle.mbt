@@ -364,9 +364,13 @@ pub fn switch_pet(idx : Int) -> Bool {
     set_result(0, taken, false, 0.0, false, player_defeated)
     _result.message = "换上了 \{_state.owned[idx].name}！受到 \{taken} 点反击。"
   } else {
-    let taken = enemy_turn()
     let old_pet = _state.owned[_state.active]
     _state.owned[_state.active].cur_hp = _state.player_hp
+    _state.active = idx
+    _state.player_hp = _state.owned[idx].cur_hp
+    _state.player_max_hp = _state.owned[idx].hp
+    _state.player_atk = _state.owned[idx].atk
+    let taken = enemy_turn()
     let player_defeated = _state.player_hp <= 0
     if player_defeated {
       set_result(0, taken, false, 0.0, false, true)
@@ -377,10 +381,6 @@ pub fn switch_pet(idx : Int) -> Bool {
       }
       return true
     }
-    _state.active = idx
-    _state.player_hp = _state.owned[idx].cur_hp
-    _state.player_max_hp = _state.owned[idx].hp
-    _state.player_atk = _state.owned[idx].atk
     set_result(0, taken, false, 0.0, false, false)
     _result.message = if _result.dodged {
       "闪避了\{_state.enemy_name} 的攻击！换上了 \{_state.owned[idx].name}。"
