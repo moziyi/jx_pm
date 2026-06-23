@@ -59,22 +59,12 @@ pub fn use_herb() -> Bool {
   if player_goes_first() {
     let taken = enemy_counter_attack()
     let player_defeated = _state.player_hp <= 0
-    _result.damage_dealt = 0
-    _result.damage_taken = taken
-    _result.catch_success = false
-    _result.catch_rate = 0.0
-    _result.enemy_defeated = false
-    _result.player_defeated = player_defeated
+    set_result(0, taken, false, 0.0, false, player_defeated)
     _result.message = "使用了药草，恢复了 \{heal} 点 HP。受到 \{taken} 点反击。"
   } else {
     let taken = enemy_turn()
     let player_defeated = _state.player_hp <= 0
-    _result.damage_dealt = 0
-    _result.damage_taken = taken
-    _result.catch_success = false
-    _result.catch_rate = 0.0
-    _result.enemy_defeated = false
-    _result.player_defeated = player_defeated
+    set_result(0, taken, false, 0.0, false, player_defeated)
     _result.message = if player_defeated {
       "\{_state.enemy_name} 先手造成 \{taken} 点伤害！\{pet.name} 倒下了…"
     } else {
@@ -106,22 +96,12 @@ pub fn use_revive(idx : Int) -> Bool {
   if player_goes_first() {
     let taken = enemy_counter_attack()
     let player_defeated = _state.player_hp <= 0
-    _result.damage_dealt = 0
-    _result.damage_taken = taken
-    _result.catch_success = false
-    _result.catch_rate = 0.0
-    _result.enemy_defeated = false
-    _result.player_defeated = player_defeated
+    set_result(0, taken, false, 0.0, false, player_defeated)
     _result.message = "使用了醒神草，\{_state.owned[idx].name} 恢复了 \{half} 点 HP。受到 \{taken} 点反击。"
   } else {
     let taken = enemy_turn()
     let player_defeated = _state.player_hp <= 0
-    _result.damage_dealt = 0
-    _result.damage_taken = taken
-    _result.catch_success = false
-    _result.catch_rate = 0.0
-    _result.enemy_defeated = false
-    _result.player_defeated = player_defeated
+    set_result(0, taken, false, 0.0, false, player_defeated)
     let pet = _state.owned[_state.active]
     _result.message = if player_defeated {
       "\{_state.enemy_name} 先手造成 \{taken} 点伤害！\{pet.name} 倒下了…"
@@ -157,12 +137,7 @@ pub fn use_charm() -> Bool {
     let taken = enemy_turn()
     let player_defeated = _state.player_hp <= 0
     if player_defeated {
-      _result.damage_dealt = 0
-      _result.damage_taken = taken
-      _result.catch_success = false
-      _result.catch_rate = rate
-      _result.enemy_defeated = false
-      _result.player_defeated = true
+      set_result(0, taken, false, rate, false, true)
       let pet = _state.owned[_state.active]
       _result.message = if _result.dodged {
         "闪避了攻击！但来不及使用幻兽符…"
@@ -171,12 +146,7 @@ pub fn use_charm() -> Bool {
       }
     } else {
       let success = resolve_catch(rate)
-      _result.damage_dealt = 0
-      _result.damage_taken = taken
-      _result.catch_success = success
-      _result.catch_rate = rate
-      _result.enemy_defeated = success
-      _result.player_defeated = false
+      set_result(0, taken, success, rate, success, false)
       _result.message = if success {
         "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。幻兽符成功！\{_state.enemy_name} 加入了你的队伍！（\{((rate)*100.0).to_int()}%）"
       } else {
@@ -211,12 +181,7 @@ pub fn use_great_charm() -> Bool {
     let taken = enemy_turn()
     let player_defeated = _state.player_hp <= 0
     if player_defeated {
-      _result.damage_dealt = 0
-      _result.damage_taken = taken
-      _result.catch_success = false
-      _result.catch_rate = rate
-      _result.enemy_defeated = false
-      _result.player_defeated = true
+      set_result(0, taken, false, rate, false, true)
       let pet = _state.owned[_state.active]
       _result.message = if _result.dodged {
         "闪避了攻击！但来不及使用高级符…"
@@ -225,12 +190,7 @@ pub fn use_great_charm() -> Bool {
       }
     } else {
       let success = resolve_catch(rate)
-      _result.damage_dealt = 0
-      _result.damage_taken = taken
-      _result.catch_success = success
-      _result.catch_rate = rate
-      _result.enemy_defeated = success
-      _result.player_defeated = false
+      set_result(0, taken, success, rate, success, false)
       _result.message = if success {
         "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。高级符成功！\{_state.enemy_name} 加入了你的队伍！（\{((rate)*100.0).to_int()}%）"
       } else {

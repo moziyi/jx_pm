@@ -34,6 +34,16 @@ fn clamp_min(v : Int, min : Int) -> Int {
 }
 
 ///|
+fn set_result(dealt : Int, taken : Int, caught : Bool, rate : Double, enemy_def : Bool, player_def : Bool) -> Unit {
+  _result.damage_dealt = dealt
+  _result.damage_taken = taken
+  _result.catch_success = caught
+  _result.catch_rate = rate
+  _result.enemy_defeated = enemy_def
+  _result.player_defeated = player_def
+}
+
+///|
 fn roll_stat(base : Int) -> Int {
   let r = (math_random() - 0.5) * 0.4
   let v = (base.to_double() * (1.0 + r)).to_int()
@@ -128,12 +138,7 @@ pub fn player_attack() -> Unit {
     let enemy_defeated = _state.enemy_hp <= 0
     let taken = if enemy_defeated { 0 } else { enemy_counter_attack() }
     let player_defeated = _state.player_hp <= 0
-    _result.damage_dealt = dealt
-    _result.damage_taken = taken
-    _result.catch_success = false
-    _result.catch_rate = 0.0
-    _result.enemy_defeated = enemy_defeated
-    _result.player_defeated = player_defeated
+    set_result(dealt, taken, false, 0.0, enemy_defeated, player_defeated)
     _result.message = if enemy_defeated {
       "你造成了 \{dealt} 点伤害。\{_state.enemy_name} 被击败了！"
     } else if _result.dodged {
@@ -155,12 +160,7 @@ pub fn player_attack() -> Unit {
       d
     }
     let enemy_defeated = _state.enemy_hp <= 0
-    _result.damage_dealt = dealt
-    _result.damage_taken = taken
-    _result.catch_success = false
-    _result.catch_rate = 0.0
-    _result.enemy_defeated = enemy_defeated
-    _result.player_defeated = player_defeated
+    set_result(dealt, taken, false, 0.0, enemy_defeated, player_defeated)
     _result.message = if _result.dodged {
       "闪避了\{_state.enemy_name} 的攻击！你造成 \{dealt} 点伤害。"
     } else if player_defeated {
@@ -197,12 +197,7 @@ pub fn elemental_skill() -> Unit {
           _state.enemy_hp + heal
         }
         let taken = enemy_counter_attack()
-        _result.damage_dealt = 0
-        _result.damage_taken = taken
-        _result.catch_success = false
-        _result.catch_rate = 0.0
-        _result.enemy_defeated = false
-        _result.player_defeated = _state.player_hp <= 0
+        set_result(0, taken, false, 0.0, false, _state.player_hp <= 0)
         _result.message = if _result.dodged {
           "元素技为 \{_state.enemy_name} 恢复了 \{heal} HP…\{_state.enemy_name} 的攻击被闪避了！"
         } else {
@@ -216,12 +211,7 @@ pub fn elemental_skill() -> Unit {
         _state.enemy_hp = clamp_min(_state.enemy_hp - d, 0)
         let ed = _state.enemy_hp <= 0
         let taken = if ed { 0 } else { enemy_counter_attack() }
-        _result.damage_dealt = d
-        _result.damage_taken = taken
-        _result.catch_success = false
-        _result.catch_rate = 0.0
-        _result.enemy_defeated = ed
-        _result.player_defeated = _state.player_hp <= 0
+        set_result(d, taken, false, 0.0, ed, _state.player_hp <= 0)
         _result.message = if ed {
           "元素技造成 \{d} 点伤害！\{_state.enemy_name} 被击败了！"
         } else if _result.player_defeated {
@@ -235,12 +225,7 @@ pub fn elemental_skill() -> Unit {
     let taken = enemy_turn()
     let player_defeated = _state.player_hp <= 0
     if player_defeated {
-      _result.damage_dealt = 0
-      _result.damage_taken = taken
-      _result.catch_success = false
-      _result.catch_rate = 0.0
-      _result.enemy_defeated = false
-      _result.player_defeated = true
+      set_result(0, taken, false, 0.0, false, true)
       _result.message = if _result.dodged {
         "闪避了\{_state.enemy_name} 的攻击！但随后无法行动…"
       } else {
@@ -258,12 +243,7 @@ pub fn elemental_skill() -> Unit {
           } else {
             _state.enemy_hp + heal
           }
-          _result.damage_dealt = 0
-          _result.damage_taken = taken
-          _result.catch_success = false
-          _result.catch_rate = 0.0
-          _result.enemy_defeated = false
-          _result.player_defeated = false
+          set_result(0, taken, false, 0.0, false, false)
           _result.message = "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。元素技为 \{_state.enemy_name} 恢复了 \{heal} HP…"
         }
         _ => {
@@ -272,12 +252,7 @@ pub fn elemental_skill() -> Unit {
           let d = if dmg < 1 { 1 } else { dmg }
           _state.enemy_hp = clamp_min(_state.enemy_hp - d, 0)
           let ed = _state.enemy_hp <= 0
-          _result.damage_dealt = d
-          _result.damage_taken = taken
-          _result.catch_success = false
-          _result.catch_rate = 0.0
-          _result.enemy_defeated = ed
-          _result.player_defeated = false
+          set_result(d, taken, false, 0.0, ed, false)
           _result.message = if ed {
             "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。元素技反击 \{d} 点，击败了它！"
           } else {
@@ -320,12 +295,7 @@ fn do_catch(rate : Double) -> Bool {
   let success = resolve_catch(rate)
   let taken = if success { 0 } else { enemy_counter_attack() }
   let player_defeated = _state.player_hp <= 0
-  _result.damage_dealt = 0
-  _result.damage_taken = taken
-  _result.catch_success = success
-  _result.catch_rate = rate
-  _result.enemy_defeated = success
-  _result.player_defeated = player_defeated
+  set_result(0, taken, success, rate, success, player_defeated)
   let pct = (rate * 100.0).to_int()
   _result.message = if success {
     "捕捉成功！\{_state.enemy_name} 加入了你的队伍！"
@@ -350,12 +320,7 @@ pub fn try_catch() -> Unit {
     let taken = enemy_turn()
     let player_defeated = _state.player_hp <= 0
     if player_defeated {
-      _result.damage_dealt = 0
-      _result.damage_taken = taken
-      _result.catch_success = false
-      _result.catch_rate = rate
-      _result.enemy_defeated = false
-      _result.player_defeated = true
+      set_result(0, taken, false, rate, false, true)
       let pet = _state.owned[_state.active]
       _result.message = if _result.dodged {
         "闪避了攻击！但来不及捕捉…"
@@ -364,12 +329,7 @@ pub fn try_catch() -> Unit {
       }
     } else {
       let success = resolve_catch(rate)
-      _result.damage_dealt = 0
-      _result.damage_taken = taken
-      _result.catch_success = success
-      _result.catch_rate = rate
-      _result.enemy_defeated = success
-      _result.player_defeated = false
+      set_result(0, taken, success, rate, success, false)
       let pct = (rate * 100.0).to_int()
       _result.message = if success {
         "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。捕捉成功！\{_state.enemy_name} 加入了你的队伍！"
@@ -401,12 +361,7 @@ pub fn switch_pet(idx : Int) -> Bool {
     _state.player_atk = _state.owned[idx].atk
     let taken = enemy_counter_attack()
     let player_defeated = _state.player_hp <= 0
-    _result.damage_dealt = 0
-    _result.damage_taken = taken
-    _result.catch_success = false
-    _result.catch_rate = 0.0
-    _result.enemy_defeated = false
-    _result.player_defeated = player_defeated
+    set_result(0, taken, false, 0.0, false, player_defeated)
     _result.message = "换上了 \{_state.owned[idx].name}！受到 \{taken} 点反击。"
   } else {
     let taken = enemy_turn()
@@ -414,12 +369,7 @@ pub fn switch_pet(idx : Int) -> Bool {
     _state.owned[_state.active].cur_hp = _state.player_hp
     let player_defeated = _state.player_hp <= 0
     if player_defeated {
-      _result.damage_dealt = 0
-      _result.damage_taken = taken
-      _result.catch_success = false
-      _result.catch_rate = 0.0
-      _result.enemy_defeated = false
-      _result.player_defeated = true
+      set_result(0, taken, false, 0.0, false, true)
       _result.message = if _result.dodged {
         "闪避了\{_state.enemy_name} 的攻击！但切换被打断了…"
       } else {
@@ -431,12 +381,7 @@ pub fn switch_pet(idx : Int) -> Bool {
     _state.player_hp = _state.owned[idx].cur_hp
     _state.player_max_hp = _state.owned[idx].hp
     _state.player_atk = _state.owned[idx].atk
-    _result.damage_dealt = 0
-    _result.damage_taken = taken
-    _result.catch_success = false
-    _result.catch_rate = 0.0
-    _result.enemy_defeated = false
-    _result.player_defeated = false
+    set_result(0, taken, false, 0.0, false, false)
     _result.message = if _result.dodged {
       "闪避了\{_state.enemy_name} 的攻击！换上了 \{_state.owned[idx].name}。"
     } else {
@@ -450,12 +395,7 @@ pub fn switch_pet(idx : Int) -> Bool {
 ///|
 pub fn run_away() -> Unit {
   sync_active_hp()
-  _result.damage_dealt = 0
-  _result.damage_taken = 0
-  _result.catch_success = false
-  _result.catch_rate = 0.0
-  _result.enemy_defeated = false
-  _result.player_defeated = false
+  set_result(0, 0, false, 0.0, false, false)
   _result.message = "成功逃跑了！"
 }
 
