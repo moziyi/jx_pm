@@ -270,23 +270,27 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
     const exp = p.exp ?? 0;
     const expNext = exports.exp_to_next ? exports.exp_to_next(lv) : 999;
     const expPct = expNext > 0 ? Math.min(100, (exp / expNext) * 100) : 100;
-    const expBar = dead
-      ? ""
-      : `<span class="tag-exp-wrap"><span class="tag-exp-fill" style="width:${expPct}%"></span></span>`;
+    const hpPct = Math.max(0, (p.cur_hp / p.hp) * 100);
+    const hpColor = hpPct > 50 ? "green" : hpPct > 25 ? "yellow" : "red";
     const maxLv = exports.get_max_level ? exports.get_max_level() : 50;
     const cls = isStored
       ? " stored-pet"
       : (isActive ? " active-pet" : "") + (dead ? " fainted" : "");
     const extra = isStored
-      ? " 📦寄存中"
-      : (isActive ? " ⚔️出战中" : "") + (dead ? " 💀被击败" : "");
-    return `<span class="captured-tag${cls}" draggable="true" data-idx="${idx}" data-stored="${isStored ? 1 : 0}" title="HP:${p.cur_hp}/${p.hp} ATK:${p.atk} DEF:${p.def ?? 0} AGI:${p.agi ?? 0} 元素:${el}${extra}">
-    <span class="tag-emoji">${p.e}</span><span class="tag-name">${p.n}</span>
-    <span class="tag-lv">Lv${lv}${lv >= maxLv ? " MAX" : ""}</span>
-    <span class="tag-element">${el}</span>
-    <span class="tag-stats">${dead ? "💀" : p.cur_hp + "/" + p.hp}</span>
-    ${expBar}
-  </span>`;
+      ? " 寄存中"
+      : (isActive ? " 出战中" : "") + (dead ? " 被击败" : "");
+    return `<span class="captured-tag${cls}" draggable="true" data-idx="${idx}" data-stored="${isStored ? 1 : 0}" title="HP:${p.cur_hp}/${p.hp} ATK:${p.atk} DEF:${p.def??0} AGI:${p.agi??0} 元素:${el}${extra}">
+      <div class="tag-top">
+        <span class="tag-emoji">${p.e}</span><span class="tag-name">${p.n}</span>
+        <span class="tag-lv">Lv${lv}${lv >= maxLv ? " MAX" : ""}</span>
+        <span class="tag-element">${el}</span>
+      </div>
+      <div class="tag-bottom">
+        <span class="tag-hp-text">${dead ? "💀" : p.cur_hp + "/" + p.hp}</span>
+        <span class="tag-hp-bar"><span class="tag-hp-fill ${hpColor}" style="width:${hpPct}%"></span></span>
+        <span class="tag-exp-bar"><span class="tag-exp-fill" style="width:${expPct}%"></span></span>
+      </div>
+    </span>`;
   }
 
   function renderPetList() {
