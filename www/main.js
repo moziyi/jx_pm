@@ -61,10 +61,7 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
     const imports = { env: { math_random: () => Math.random() }, _: {} };
     for (const imp of WebAssembly.Module.imports(mod)) {
       if (imp.module === "_" && imp.kind === "global") {
-        imports._[imp.name] = new WebAssembly.Global(
-          { value: "externref", mutable: false },
-          imp.name,
-        );
+        imports._[imp.name] = imp.name;
       }
     }
     imports["wasm:js-string"] = {
