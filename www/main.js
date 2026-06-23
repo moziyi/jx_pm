@@ -86,6 +86,10 @@ function showStarterPick() {
       panel.style.display = 'none'
       $('map-view').removeAttribute('hidden')
       syncFromMoonBit()
+      // add_pet 默认名为"未知"，此处修正为选中宠物
+      if (pets.length > 0) { pets[0].n = s.n; pets[0].e = s.e }
+      saveGame(pets, storedPets, exports)
+      renderPetList()
     })
   })
 }
