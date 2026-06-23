@@ -29,23 +29,23 @@ jobs:
         run: |
           # 1. 编译
           moon clean
-          moon build --target wasm
-          
+          moon build --target wasm-gc --release
+
           # 2. 自动定位 wasm 文件并拷贝到 www 目录
           WASM_FILE=$(find . -name "*.wasm" | head -n 1)
-          
+
           if [ -z "$WASM_FILE" ]; then
             echo "错误: 未找到生成的 .wasm 文件！"
             exit 1
           fi
-          
+
           cp "$WASM_FILE" ./www/main.wasm
           echo "已成功将 $WASM_FILE 部署至 ./www/main.wasm"
-          
+
           # 3. 动态修改 www/main.js 中的 Wasm 加载路径
           # 将本地绝对路径替换为相对路径 ./main.wasm
           # 注意：这里的匹配字符串必须和你的 JS 源码完全一致
-          sed -i "s|/_build/wasm/release/build/main/main.wasm|./main.wasm|g" ./www/main.js
+          sed -i "s|/_build/wasm-gc/release/build/main/main.wasm|./main.wasm|g" ./www/main.js
           echo "已完成 JS 路径自动适配"
 
       - name: Deploy to GitHub Pages
