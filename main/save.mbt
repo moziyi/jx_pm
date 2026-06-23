@@ -4,7 +4,7 @@
 pub fn export_save() -> String {
   let owned_count = _state.owned.length()
   let stored_count = _state.stored.length()
-  let lines = "7\n"
+  let lines = "8\n"
   let mut data = _state.active.to_string() + "\n"
   data = data + _inventory.herbs.to_string() + "\n"
   data = data + _inventory.revives.to_string() + "\n"
@@ -12,6 +12,7 @@ pub fn export_save() -> String {
   data = data + _inventory.great_charms.to_string() + "\n"
   data = data + owned_count.to_string() + "\n"
   for i = 0; i < owned_count; i = i + 1 {
+    data = data + _state.owned[i].id.to_string() + "\n"
     data = data + _state.owned[i].name + "\n"
     data = data + _state.owned[i].emoji + "\n"
     data = data + _state.owned[i].hp.to_string() + "\n"
@@ -25,6 +26,7 @@ pub fn export_save() -> String {
   }
   data = data + stored_count.to_string() + "\n"
   for i = 0; i < stored_count; i = i + 1 {
+    data = data + _state.stored[i].id.to_string() + "\n"
     data = data + _state.stored[i].name + "\n"
     data = data + _state.stored[i].emoji + "\n"
     data = data + _state.stored[i].hp.to_string() + "\n"

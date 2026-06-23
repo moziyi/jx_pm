@@ -93,6 +93,11 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
         p.cur_hp,
         p.el ?? 4,
       );
+    // 同步 id 计数器：找到最大 id，确保 MoonBit 后续 id 不冲突
+    let maxId = 0;
+    for (const p of saved.pets) if ((p.id ?? 0) > maxId) maxId = p.id;
+    for (const p of saved.stored || []) if ((p.id ?? 0) > maxId) maxId = p.id;
+    exports.reset_next_id(maxId + 1);
     exports.set_active(saved.active);
     if (saved.inv) {
       exports.add_herbs(saved.inv.herbs - exports.get_herbs());
@@ -137,6 +142,7 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
         panel.style.display = "none";
         $("map-view").removeAttribute("hidden");
         syncFromMoonBit();
+        // add_pet 创建时名为"未知"，此处修正
         pets[0].n = s.n;
         pets[0].e = s.e;
         saveGame(pets, storedPets, exports);
@@ -146,61 +152,56 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
   }
 
   function syncFromMoonBit() {
+    // 按 id 匹配：先建映射
+    const petById = {};
+    for (const p of pets) petById[p.id] = p;
+    const storedById = {};
+    for (const p of storedPets) storedById[p.id] = p;
+
     const count = exports.get_owned_count();
+    const newPets = [];
     for (let i = 0; i < count; i++) {
-      if (i >= pets.length) {
-        pets.push({
-          n: ds(exports.get_owned_name(i)),
-          e: ds(exports.get_owned_emoji(i)),
-          hp: exports.get_owned_hp(i),
-          atk: exports.get_owned_atk(i),
-          def: exports.get_owned_def(i),
-          agi: exports.get_owned_agi(i),
-          lv: exports.get_owned_lv(i),
-          exp: exports.get_owned_exp(i),
-          cur_hp: exports.get_owned_cur_hp(i),
-          el: exports.get_owned_element(i),
-        });
+      const id = exports.get_owned_id(i);
+      let p = petById[id];
+      if (p) {
+        delete petById[id];
       } else {
-        pets[i].hp = exports.get_owned_hp(i);
-        pets[i].atk = exports.get_owned_atk(i);
-        pets[i].def = exports.get_owned_def(i);
-        pets[i].agi = exports.get_owned_agi(i);
-        pets[i].lv = exports.get_owned_lv(i);
-        pets[i].exp = exports.get_owned_exp(i);
-        pets[i].cur_hp = exports.get_owned_cur_hp(i);
-        pets[i].el = exports.get_owned_element(i);
+        p = { id, n: ds(exports.get_owned_name(i)), e: ds(exports.get_owned_emoji(i)) };
       }
+      p.hp = exports.get_owned_hp(i);
+      p.atk = exports.get_owned_atk(i);
+      p.def = exports.get_owned_def(i);
+      p.agi = exports.get_owned_agi(i);
+      p.lv = exports.get_owned_lv(i);
+      p.exp = exports.get_owned_exp(i);
+      p.cur_hp = exports.get_owned_cur_hp(i);
+      p.el = exports.get_owned_element(i);
+      newPets.push(p);
     }
-    pets.length = count;
+    pets = newPets;
+
     const sc = exports.get_stored_count ? exports.get_stored_count() : 0;
+    const newStored = [];
     for (let i = 0; i < sc; i++) {
-      if (i >= storedPets.length) {
-        storedPets.push({
-          n: ds(exports.get_stored_name(i)),
-          e: ds(exports.get_stored_emoji(i)),
-          hp: exports.get_stored_hp(i),
-          atk: exports.get_stored_atk(i),
-          def: exports.get_stored_def(i),
-          agi: exports.get_stored_agi(i),
-          lv: exports.get_stored_lv(i),
-          exp: exports.get_stored_exp(i),
-          cur_hp: exports.get_stored_cur_hp(i),
-          el: exports.get_stored_element(i),
-        });
+      const id = exports.get_stored_id(i);
+      let p = storedById[id];
+      if (p) {
+        delete storedById[id];
       } else {
-        const sp = storedPets[i];
-        sp.hp = exports.get_stored_hp(i);
-        sp.atk = exports.get_stored_atk(i);
-        sp.def = exports.get_stored_def(i);
-        sp.agi = exports.get_stored_agi(i);
-        sp.lv = exports.get_stored_lv(i);
-        sp.exp = exports.get_stored_exp(i);
-        sp.cur_hp = exports.get_stored_cur_hp(i);
-        sp.el = exports.get_stored_element(i);
+        p = { id, n: ds(exports.get_stored_name(i)), e: ds(exports.get_stored_emoji(i)) };
       }
+      p.hp = exports.get_stored_hp(i);
+      p.atk = exports.get_stored_atk(i);
+      p.def = exports.get_stored_def(i);
+      p.agi = exports.get_stored_agi(i);
+      p.lv = exports.get_stored_lv(i);
+      p.exp = exports.get_stored_exp(i);
+      p.cur_hp = exports.get_stored_cur_hp(i);
+      p.el = exports.get_stored_element(i);
+      newStored.push(p);
     }
-    storedPets.length = sc;
+    storedPets = newStored;
+
     updateItemCounts();
     saveGame(pets, storedPets, exports);
     renderPetList();
@@ -449,14 +450,10 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
           }
         } else if (a === "store") {
           if (exports.store_pet(idx)) {
-            storedPets.push(pets[idx]);
-            pets.splice(idx, 1);
             syncFromMoonBit();
           }
         } else if (a === "withdraw") {
           if (exports.withdraw_pet(idx)) {
-            pets.push(storedPets[idx]);
-            storedPets.splice(idx, 1);
             syncFromMoonBit();
           }
         }
@@ -685,11 +682,7 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
       const maxStored = exports.get_max_stored ? exports.get_max_stored() : 10;
       if (pets.length > max) {
         if (storedPets.length < maxStored) {
-          const lastIdx = pets.length - 1;
-          if (exports.store_pet(lastIdx)) {
-            storedPets.push(pets[lastIdx]);
-            pets.splice(lastIdx, 1);
-          }
+          exports.store_pet(pets.length - 1);
           syncFromMoonBit();
           setLog(ds(exports.get_last_message()) + ` 队伍已满，新宠物已自动寄存。`);
         } else {

@@ -273,6 +273,7 @@ fn resolve_catch(rate : Double) -> Bool {
   if success {
     let hp = roll_stat(_state.enemy_max_hp)
     _state.owned.push({
+      id: next_id(),
       name: _state.enemy_name,
       emoji: _state.enemy_emoji,
       hp,
