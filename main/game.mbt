@@ -348,6 +348,21 @@ pub fn withdraw_pet(idx : Int) -> Bool {
   true
 }
 
+/// 放生寄存宠物
+pub fn release_stored_pet(idx : Int) -> Bool {
+  if idx < 0 || idx >= _state.stored.length() {
+    return false
+  }
+  let new_stored : Array[CapturedEntry] = []
+  for i = 0; i < _state.stored.length(); i = i + 1 {
+    if i != idx {
+      new_stored.push(_state.stored[i])
+    }
+  }
+  _state.stored = new_stored
+  true
+}
+
 // ── HP 操作 ───────────────────────────────────────────────────────────────
 
 ///|
