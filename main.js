@@ -63,8 +63,8 @@ if (saved && saved.pets.length > 0) {
 function showStarterPick() {
   const panel = $('starter-pick')
   const cardsEl = $('starter-cards')
-  if (!panel || !cardsEl) return
-  panel.removeAttribute('hidden')
+  if (!panel || !cardsEl || !Array.isArray(STARTERS)) return
+  panel.style.display = 'flex'
   $('map-view').hidden = true
   cardsEl.innerHTML = STARTERS.map((s, i) => {
     const el = ELEMENTS[s.el] || '?'
@@ -76,14 +76,14 @@ function showStarterPick() {
       <span class="starter-stats">HP:${s.hp} ATK:${s.atk} DEF:${s.def} AGI:${s.agi}</span>
     </button>`
   }).join('')
-  cards.querySelectorAll('.starter-card').forEach(btn => {
+  cardsEl.querySelectorAll('.starter-card').forEach(btn => {
     btn.addEventListener('click', () => {
       const s = STARTERS[parseInt(btn.dataset.idx)]
       exports.clear_pets()
       exports.add_pet(s.hp, s.atk, s.def, s.agi, 1, 0, s.hp, s.el)
       exports.set_active(0)
       markCaught(s.n)
-      panel.setAttribute('hidden', '')
+      panel.style.display = 'none'
       $('map-view').removeAttribute('hidden')
       syncFromMoonBit()
     })
