@@ -103,6 +103,7 @@ options(
     },
     "wasm-gc": {
       "exports": [
+
         "new_game",
         "start_battle",
         "player_attack",
@@ -200,7 +201,7 @@ options(
         "recover_after_defeat",
         "export_save",
       ],
-      "use-js-builtin-string": true,
+      "export-memory-name": "memory",
     },
   },
 )
