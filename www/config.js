@@ -2,7 +2,10 @@
 
 export const ELEMENTS = ['金', '木', '土', '水', '火']
 
-export const STARTER_PET = { n: '小幽', e: '🧚', hp: 35, atk: 8, lv: 1, cur_hp: 35, el: 4 }
+// 元素常量映射，方便配置时直接使用名字
+export const EL = { METAL: 0, WOOD: 1, EARTH: 2, WATER: 3, FIRE: 4 }
+
+export const STARTER_PET = { n: '小幽', e: '🧚', hp: 35, atk: 8, lv: 1, cur_hp: 35, el: EL.FIRE }
 
 export const INITIAL_ITEMS = { herbs: 3, revives: 1, charms: 2, great_charms: 1 }
 
@@ -27,10 +30,10 @@ export const SPECIAL_EVENTS = {
 export const EVENTS = {
   forest: {
     battles: [
-      { w: 3, enemy: { name: '幽林精灵', emoji: '🧚', hp: 35, atk: 8, el: 1 } },
-      { w: 3, enemy: { name: '荆棘藤怪', emoji: '🌿', hp: 30, atk: 10, el: 1 } },
-      { w: 2, enemy: { name: '幻光蜂鸟', emoji: '🐦', hp: 22, atk: 7, el: 4 } },
-      { w: 2, enemy: { name: '林间石灵', emoji: '🗿', hp: 40, atk: 6, el: 2 } },
+      { w: 3, enemy: { name: '幽林精灵', emoji: '🧚', hp: 35, atk: 8, el: EL.WOOD } },
+      { w: 3, enemy: { name: '荆棘藤怪', emoji: '🌿', hp: 30, atk: 10, el: EL.WOOD } },
+      { w: 2, enemy: { name: '幻光蜂鸟', emoji: '🐦', hp: 22, atk: 7, el: EL.FIRE } },
+      { w: 2, enemy: { name: '林间石灵', emoji: '🗿', hp: 40, atk: 6, el: EL.EARTH } },
     ],
     events: [
       { w: 3, type: 'item', msg: '树洞中发现了药草！', item: 'herbs', n: 1 },
@@ -42,10 +45,10 @@ export const EVENTS = {
   },
   cave: {
     battles: [
-      { w: 3, enemy: { name: '水晶蝙蝠', emoji: '🦇', hp: 28, atk: 10, el: 2 } },
-      { w: 3, enemy: { name: '深窟蝙蝠', emoji: '🦇', hp: 25, atk: 12, el: 2 } },
-      { w: 2, enemy: { name: '晶石巨蛛', emoji: '🕷️', hp: 38, atk: 13, el: 0 } },
-      { w: 2, enemy: { name: '地底水母', emoji: '🎐', hp: 30, atk: 8, el: 3 } },
+      { w: 3, enemy: { name: '水晶蝙蝠', emoji: '🦇', hp: 28, atk: 10, el: EL.EARTH } },
+      { w: 3, enemy: { name: '深窟蝙蝠', emoji: '🦇', hp: 25, atk: 12, el: EL.EARTH } },
+      { w: 2, enemy: { name: '晶石巨蛛', emoji: '🕷️', hp: 38, atk: 13, el: EL.METAL } },
+      { w: 2, enemy: { name: '地底水母', emoji: '🎐', hp: 30, atk: 8, el: EL.WATER } },
     ],
     events: [
       { w: 2, type: 'item', msg: '挖到了药草和醒神草！', item: 'herbs', n: 1, extra: { item: 'revives', n: 1 } },
@@ -57,10 +60,10 @@ export const EVENTS = {
   },
   ruins: {
     battles: [
-      { w: 3, enemy: { name: '神殿卫士', emoji: '⚗️', hp: 50, atk: 14, el: 0 } },
-      { w: 2, enemy: { name: '圣殿骑士', emoji: '⚔️', hp: 45, atk: 16, el: 0 } },
-      { w: 3, enemy: { name: '古神仆从', emoji: '🗿', hp: 42, atk: 10, el: 2 } },
-      { w: 2, enemy: { name: '封印火灵', emoji: '🔥', hp: 32, atk: 15, el: 4 } },
+      { w: 3, enemy: { name: '神殿卫士', emoji: '⚗️', hp: 50, atk: 14, el: EL.METAL } },
+      { w: 2, enemy: { name: '圣殿骑士', emoji: '⚔️', hp: 45, atk: 16, el: EL.METAL } },
+      { w: 3, enemy: { name: '古神仆从', emoji: '🗿', hp: 42, atk: 10, el: EL.EARTH } },
+      { w: 2, enemy: { name: '封印火灵', emoji: '🔥', hp: 32, atk: 15, el: EL.FIRE } },
     ],
     events: [
       { w: 2, type: 'item', msg: '祭坛上供奉着醒神草', item: 'revives', n: 1 },
@@ -72,10 +75,10 @@ export const EVENTS = {
   },
   lake: {
     battles: [
-      { w: 3, enemy: { name: '月影水灵', emoji: '💧', hp: 32, atk: 7, el: 3 } },
-      { w: 2, enemy: { name: '深海电鳗', emoji: '⚡', hp: 28, atk: 12, el: 3 } },
-      { w: 3, enemy: { name: '冰霜精灵', emoji: '❄️', hp: 30, atk: 9, el: 3 } },
-      { w: 2, enemy: { name: '湖底巨龟', emoji: '🐢', hp: 48, atk: 6, el: 1 } },
+      { w: 3, enemy: { name: '月影水灵', emoji: '💧', hp: 32, atk: 7, el: EL.WATER } },
+      { w: 2, enemy: { name: '深海电鳗', emoji: '⚡', hp: 28, atk: 12, el: EL.WATER } },
+      { w: 3, enemy: { name: '冰霜精灵', emoji: '❄️', hp: 30, atk: 9, el: EL.WATER } },
+      { w: 2, enemy: { name: '湖底巨龟', emoji: '🐢', hp: 48, atk: 6, el: EL.WOOD } },
     ],
     events: [
       { w: 2, type: 'heal_all', msg: '湖水治愈了全体宠物', n: 15 },
@@ -87,10 +90,10 @@ export const EVENTS = {
   },
   volcano: {
     battles: [
-      { w: 3, enemy: { name: '炎魔幼龙', emoji: '🔥', hp: 30, atk: 13, el: 4 } },
-      { w: 3, enemy: { name: '熔岩蜥蜴', emoji: '🦎', hp: 32, atk: 14, el: 4 } },
-      { w: 2, enemy: { name: '灰烬凤凰', emoji: '🦅', hp: 26, atk: 11, el: 4 } },
-      { w: 2, enemy: { name: '硫磺石魔', emoji: '🪨', hp: 44, atk: 9, el: 2 } },
+      { w: 3, enemy: { name: '炎魔幼龙', emoji: '🔥', hp: 30, atk: 13, el: EL.FIRE } },
+      { w: 3, enemy: { name: '熔岩蜥蜴', emoji: '🦎', hp: 32, atk: 14, el: EL.FIRE } },
+      { w: 2, enemy: { name: '灰烬凤凰', emoji: '🦅', hp: 26, atk: 11, el: EL.FIRE } },
+      { w: 2, enemy: { name: '硫磺石魔', emoji: '🪨', hp: 44, atk: 9, el: EL.EARTH } },
     ],
     events: [
       { w: 2, type: 'heal_active_full', msg: '火山温泉治愈了出战宠物！' },
@@ -102,10 +105,10 @@ export const EVENTS = {
   },
   realm: {
     battles: [
-      { w: 3, enemy: { name: '幻影奇美拉', emoji: '🐲', hp: 40, atk: 10, el: 3 } },
-      { w: 2, enemy: { name: '虚空行者', emoji: '👤', hp: 35, atk: 14, el: 0 } },
-      { w: 3, enemy: { name: '混沌之眼', emoji: '👁', hp: 38, atk: 12, el: 3 } },
-      { w: 2, enemy: { name: '幻光独角兽', emoji: '🦄', hp: 30, atk: 8, el: 1 } },
+      { w: 3, enemy: { name: '幻影奇美拉', emoji: '🐲', hp: 40, atk: 10, el: EL.WATER } },
+      { w: 2, enemy: { name: '虚空行者', emoji: '👤', hp: 35, atk: 14, el: EL.METAL } },
+      { w: 3, enemy: { name: '混沌之眼', emoji: '👁', hp: 38, atk: 12, el: EL.WATER } },
+      { w: 2, enemy: { name: '幻光独角兽', emoji: '🦄', hp: 30, atk: 8, el: EL.WOOD } },
     ],
     events: [
       { w: 2, type: 'item', msg: '裂隙中飘出高级幻兽符', item: 'great_charms', n: 1 },
@@ -120,40 +123,40 @@ export const EVENTS = {
 // 图鉴 — 全部 24 种怪物（按场景分组）
 export const POKEDEX = {
   forest: [
-    { n: '幽林精灵', e: '🧚', el: 1 },
-    { n: '荆棘藤怪', e: '🌿', el: 1 },
-    { n: '幻光蜂鸟', e: '🐦', el: 4 },
-    { n: '林间石灵', e: '🗿', el: 2 },
+    { n: '幽林精灵', e: '🧚', el: EL.WOOD },
+    { n: '荆棘藤怪', e: '🌿', el: EL.WOOD },
+    { n: '幻光蜂鸟', e: '🐦', el: EL.FIRE },
+    { n: '林间石灵', e: '🗿', el: EL.EARTH },
   ],
   cave: [
-    { n: '水晶蝙蝠', e: '🦇', el: 2 },
-    { n: '深窟蝙蝠', e: '🦇', el: 2 },
-    { n: '晶石巨蛛', e: '🕷️', el: 0 },
-    { n: '地底水母', e: '🎐', el: 3 },
+    { n: '水晶蝙蝠', e: '🦇', el: EL.EARTH },
+    { n: '深窟蝙蝠', e: '🦇', el: EL.EARTH },
+    { n: '晶石巨蛛', e: '🕷️', el: EL.METAL },
+    { n: '地底水母', e: '🎐', el: EL.WATER },
   ],
   ruins: [
-    { n: '神殿卫士', e: '⚗️', el: 0 },
-    { n: '圣殿骑士', e: '⚔️', el: 0 },
-    { n: '古神仆从', e: '🗿', el: 2 },
-    { n: '封印火灵', e: '🔥', el: 4 },
+    { n: '神殿卫士', e: '⚗️', el: EL.METAL },
+    { n: '圣殿骑士', e: '⚔️', el: EL.METAL },
+    { n: '古神仆从', e: '🗿', el: EL.EARTH },
+    { n: '封印火灵', e: '🔥', el: EL.FIRE },
   ],
   lake: [
-    { n: '月影水灵', e: '💧', el: 3 },
-    { n: '深海电鳗', e: '⚡', el: 3 },
-    { n: '冰霜精灵', e: '❄️', el: 3 },
-    { n: '湖底巨龟', e: '🐢', el: 1 },
+    { n: '月影水灵', e: '💧', el: EL.WATER },
+    { n: '深海电鳗', e: '⚡', el: EL.WATER },
+    { n: '冰霜精灵', e: '❄️', el: EL.WATER },
+    { n: '湖底巨龟', e: '🐢', el: EL.WOOD },
   ],
   volcano: [
-    { n: '炎魔幼龙', e: '🔥', el: 4 },
-    { n: '熔岩蜥蜴', e: '🦎', el: 4 },
-    { n: '灰烬凤凰', e: '🦅', el: 4 },
-    { n: '硫磺石魔', e: '🪨', el: 2 },
+    { n: '炎魔幼龙', e: '🔥', el: EL.FIRE },
+    { n: '熔岩蜥蜴', e: '🦎', el: EL.FIRE },
+    { n: '灰烬凤凰', e: '🦅', el: EL.FIRE },
+    { n: '硫磺石魔', e: '🪨', el: EL.EARTH },
   ],
   realm: [
-    { n: '幻影奇美拉', e: '🐲', el: 3 },
-    { n: '虚空行者', e: '👤', el: 0 },
-    { n: '混沌之眼', e: '👁', el: 3 },
-    { n: '幻光独角兽', e: '🦄', el: 1 },
+    { n: '幻影奇美拉', e: '🐲', el: EL.WATER },
+    { n: '虚空行者', e: '👤', el: EL.METAL },
+    { n: '混沌之眼', e: '👁', el: EL.WATER },
+    { n: '幻光独角兽', e: '🦄', el: EL.WOOD },
   ],
 }
 
