@@ -314,3 +314,37 @@ body {
   .avatar { width:56px; height:56px; font-size:24px; }
   .hp-wrap { width:90px; }
 }
+
+/* 拖拽排序 */
+.captured-tag[draggable="true"] { cursor:grab; }
+.captured-tag[draggable="true"]:active { cursor:grabbing; }
+.captured-tag.drag-over { outline:2px dashed #a78bfa; outline-offset:-2px; }
+
+/* 图鉴 */
+.btn-pokedex {
+  display:block; margin:12px auto 0; padding:6px 16px;
+  background:#1a1a2e; color:#c4b5fd; border:1px solid rgba(167,139,250,0.3);
+  border-radius:8px; cursor:pointer; font-size:13px;
+}
+.btn-pokedex:hover { border-color:#a78bfa; }
+.pokedex-panel {
+  margin:10px 0; padding:10px;
+  background:rgba(15,15,30,0.9); border:1px solid rgba(255,255,255,0.1);
+  border-radius:10px; max-height:420px; overflow-y:auto;
+}
+.dex-group { margin-bottom:10px; }
+.dex-group-title { font-size:12px; color:#a78bfa; margin-bottom:4px; }
+.dex-grid { display:flex; flex-wrap:wrap; gap:6px; }
+.dex-entry {
+  display:flex; align-items:center; gap:4px;
+  padding:4px 8px; border-radius:8px; font-size:11px;
+  background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
+  min-width:60px;
+}
+.dex-entry.unknown { background:rgba(0,0,0,0.3); border-color:rgba(255,255,255,0.03); }
+.dex-entry.seen { background:rgba(255,255,255,0.05); }
+.dex-entry.caught { background:rgba(167,139,250,0.1); border-color:rgba(167,139,250,0.2); }
+.dex-silhouette { font-size:14px; opacity:0.3; }
+.dex-icon-sm { font-size:14px; }
+.dex-name { color:#e0e0e0; font-size:11px; }
+.dex-el { color:#888; font-size:10px; }
