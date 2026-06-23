@@ -15,12 +15,12 @@ fn roll_damage(base : Int, variance : Int) -> Int {
 ///|
 fn calc_catch_rate() -> Double {
   let ratio = _state.enemy_hp.to_double() / _state.enemy_max_hp.to_double()
-  if ratio > 0.50 {
-    0.15
-  } else if ratio > 0.25 {
+  if ratio > 0.60 {
+    0.20
+  } else if ratio > 0.30 {
     0.45
   } else {
-    0.75
+    0.70
   }
 }
 

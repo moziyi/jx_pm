@@ -46,7 +46,7 @@ pub fn start_battle(location_id : Int) -> Bool {
   }
   _state.enemy_lv = enemy_lv
   // 根据等级缩放敌人属性
-  let growth_hp = (enemy_lv - 1) * 4
+  let growth_hp = (enemy_lv - 1) * 3
   let growth_atk = enemy_lv - 1
   let growth_def = enemy_lv - 1
   let growth_agi = enemy_lv - 1
@@ -85,7 +85,7 @@ fn grant_exp(gained : Int) -> Unit {
   while pet.lv < max_level && pet.exp >= exp_to_next(pet.lv) {
     pet.exp = pet.exp - exp_to_next(pet.lv)
     pet.lv = pet.lv + 1
-    pet.hp = pet.hp + 3 + (math_random() * 3.0).to_int()
+    pet.hp = pet.hp + 4 + (math_random() * 3.0).to_int()
     pet.atk = pet.atk + 1 + (math_random() * 2.0).to_int()
     pet.def = pet.def + 1
     pet.agi = pet.agi + 1

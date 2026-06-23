@@ -8,10 +8,12 @@ export const INITIAL_ITEMS = { herbs: 3, revives: 1, charms: 2, great_charms: 1 
 
 // 场景 → MoonBit location_id 映射
 export const SCENES = {
-  forest: { id: 1, name: '幽暗森林', emoji: '🌲' },
-  cave:   { id: 2, name: '水晶矿洞', emoji: '💎' },
-  ruins:  { id: 3, name: '古代神殿', emoji: '🏛️' },
-  lake:   { id: 4, name: '月影湖泊', emoji: '🌊' },
+  forest:  { id: 1, name: '幽暗森林', emoji: '🌲' },
+  cave:    { id: 2, name: '水晶矿洞', emoji: '💎' },
+  ruins:   { id: 3, name: '古代神殿', emoji: '🏛️' },
+  lake:    { id: 4, name: '月影湖泊', emoji: '🌊' },
+  volcano: { id: 5, name: '炎熔火山', emoji: '🌋' },
+  realm:   { id: 6, name: '幻境裂隙', emoji: '🌀' },
 }
 
 // 特殊事件类型（仅在地图显示的标记）
@@ -73,6 +75,32 @@ export const EVENTS = {
       { w: 1, type: 'hurt_all', msg: '湖中漩涡！全体宠物受伤', n: 10 },
       { w: 2, type: 'item', msg: '月光下发现了幻兽符', item: 'charms', n: 1 },
       { w: 1, type: 'heal_active_full', msg: '湖中仙子祝福了出战宠物' },
+    ]
+  },
+  volcano: {
+    battles: [
+      { w: 4, enemy: { name: '炎魔幼龙', emoji: '🔥', hp: 30, atk: 13, el: 4 } },
+      { w: 1, enemy: { name: '熔岩巨兽', emoji: '🌋', hp: 48, atk: 17, el: 4 } },
+    ],
+    events: [
+      { w: 2, type: 'heal_active_full', msg: '火山温泉治愈了出战宠物！' },
+      { w: 2, type: 'item', msg: '熔岩裂缝中发现了药草', item: 'herbs', n: 2 },
+      { w: 1, type: 'hurt_active', msg: '被岩浆溅射灼伤！', n: 12 },
+      { w: 2, type: 'item', msg: '拾到了火焰中的幻兽符', item: 'charms', n: 1 },
+      { w: 2, type: 'revive_one', msg: '不灭火种唤醒了一只宠物' },
+    ]
+  },
+  realm: {
+    battles: [
+      { w: 3, enemy: { name: '幻影奇美拉', emoji: '🐲', hp: 40, atk: 10, el: 3 } },
+      { w: 1, enemy: { name: '远古龙魂', emoji: '👻', hp: 55, atk: 16, el: 0 } },
+    ],
+    events: [
+      { w: 2, type: 'item', msg: '裂隙中飘出高级幻兽符', item: 'great_charms', n: 1 },
+      { w: 2, type: 'heal_all', msg: '幻境能量治愈了全体宠物', n: 20 },
+      { w: 1, type: 'item', msg: '拾到了裂隙中的醒神草和药草', item: 'revives', n: 1, extra: { item: 'herbs', n: 2 } },
+      { w: 2, type: 'heal_active_full', msg: '幻境守护者祝福了出战宠物' },
+      { w: 1, type: 'revive_one', msg: '幻境低语唤醒了一只倒下的宠物' },
     ]
   },
 }

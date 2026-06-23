@@ -126,6 +126,10 @@ body {
 .m-ruins    .marker-dot::after { border-color:var(--el-metal); }
 .m-lake     .marker-dot { background:var(--el-water); border-color:var(--el-water); }
 .m-lake     .marker-dot::after { border-color:var(--el-water); }
+.m-volcano  .marker-dot { background:var(--el-fire); border-color:var(--el-fire); }
+.m-volcano  .marker-dot::after { border-color:var(--el-fire); }
+.m-realm    .marker-dot { background:#a855f7; border-color:#a855f7; }
+.m-realm    .marker-dot::after { border-color:#a855f7; }
 
 .m-treasure .marker-dot { background:var(--yellow); border-color:var(--yellow); }
 .m-treasure .marker-dot::after { border-color:var(--yellow); animation-duration:1.2s; }

@@ -119,6 +119,26 @@ fn get_location(id : Int) -> LocationConfig {
         agi: 8,
         element: Water,
       }
+    5 =>
+      {
+        name: "炎魔幼龙",
+        emoji: "🔥",
+        hp: 30,
+        atk: 13,
+        def: 2,
+        agi: 5,
+        element: Fire,
+      }
+    6 =>
+      {
+        name: "幻影奇美拉",
+        emoji: "🐲",
+        hp: 40,
+        atk: 10,
+        def: 4,
+        agi: 7,
+        element: Water,
+      }
     _ =>
       {
         name: "未知生物",
@@ -173,7 +193,7 @@ pub fn exp_to_next(lv : Int) -> Int {
   if lv >= max_level {
     0
   } else {
-    15 + lv * lv * 10
+    12 + lv * lv * 8
   }
 }
 
