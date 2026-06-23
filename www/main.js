@@ -56,9 +56,28 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
       if (!r.ok) throw Error(`HTTP ${r.status}`);
       return r.arrayBuffer();
     });
-    const { instance } = await WebAssembly.instantiate(buf, {
-      env: { math_random: () => Math.random() },
-    });
+    // 构建 WASM-GC 所需的 imports（字符串常量 globals + js-string 内置函数）
+    const mod = new WebAssembly.Module(buf);
+    const imports = { env: { math_random: () => Math.random() }, _: {} };
+    for (const imp of WebAssembly.Module.imports(mod)) {
+      if (imp.module === "_" && imp.kind === "global") {
+        imports._[imp.name] = new WebAssembly.Global(
+          { value: "externref", mutable: false },
+          imp.name,
+        );
+      }
+    }
+    imports["wasm:js-string"] = {
+      length: (s) => s.length,
+      charCodeAt: (s, i) => s.charCodeAt(i),
+      concat: (a, b) => a + b,
+      fromCharCodeArray: (a, start, end) => {
+        let r = "";
+        for (let i = start; i < end; i++) r += String.fromCharCode(a[i]);
+        return r;
+      },
+    };
+    const { instance } = await WebAssembly.instantiate(mod, imports);
     exports = instance.exports;
   } catch (err) {
     document.body.innerHTML = `<div style="padding:24px;color:#E24B4A;background:#1a1a2e;font-family:monospace;max-width:580px;margin:40px auto;border-radius:12px;border:1px solid #E24B4A;"><b>WASM 加载失败</b><br><br>${err.message}</div>`;
