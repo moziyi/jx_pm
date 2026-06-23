@@ -153,6 +153,8 @@ pub fn clear_pets() -> Unit {
 
 ///|
 pub fn add_pet(
+  name : String,
+  emoji : String,
   hp : Int,
   atk : Int,
   def : Int,
@@ -164,8 +166,8 @@ pub fn add_pet(
 ) -> Int {
   let idx = _state.owned.length()
   _state.owned.push({
-    name: "未知",
-    emoji: "❓",
+    name,
+    emoji,
     hp,
     atk,
     def,
