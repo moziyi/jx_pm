@@ -13,8 +13,9 @@ import {
 import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
 
 (async () => {
-  const wasmUrl = "/_build/wasm-gc/release/build/main/main.wasm";
+  const wasmUrl = "/_build/wasm/release/build/main/main.wasm";
   let exports,
+    mem,
     pets = [],
     storedPets = [],
     storedPage = 0;
@@ -56,32 +57,24 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
       if (!r.ok) throw Error(`HTTP ${r.status}`);
       return r.arrayBuffer();
     });
-    // 构建 WASM-GC 所需的 imports（字符串常量 globals + js-string 内置函数）
-    const mod = new WebAssembly.Module(buf);
-    const imports = { env: { math_random: () => Math.random() }, _: {} };
-    for (const imp of WebAssembly.Module.imports(mod)) {
-      if (imp.module === "_" && imp.kind === "global") {
-        imports._[imp.name] = imp.name;
-      }
-    }
-    imports["wasm:js-string"] = {
-      length: (s) => s.length,
-      charCodeAt: (s, i) => s.charCodeAt(i),
-      concat: (a, b) => a + b,
-      fromCharCodeArray: (a, start, end) => {
-        let r = "";
-        for (let i = start; i < end; i++) r += String.fromCharCode(a[i]);
-        return r;
-      },
-    };
-    const { instance } = await WebAssembly.instantiate(mod, imports);
+    const { instance } = await WebAssembly.instantiate(buf, {
+      env: { math_random: () => Math.random() },
+    });
     exports = instance.exports;
+    mem = new Uint8Array(exports.memory.buffer);
   } catch (err) {
     document.body.innerHTML = `<div style="padding:24px;color:#E24B4A;background:#1a1a2e;font-family:monospace;max-width:580px;margin:40px auto;border-radius:12px;border:1px solid #E24B4A;"><b>WASM 加载失败</b><br><br>${err.message}</div>`;
     return;
   }
 
-  // ── 2. DOM ─────────────────────────────────────────────────────────────────
+  // ── 2. 工具 ────────────────────────────────────────────────────────────────
+  function ds(ptr) {
+    if (ptr === 0) return "";
+    const len = new DataView(mem.buffer).getUint32(ptr - 4, true) & 0xffff;
+    return new TextDecoder("utf-16le").decode(mem.slice(ptr, ptr + len * 2));
+  }
+
+  // ── 3. DOM ─────────────────────────────────────────────────────────────────
   const $ = (id) => document.getElementById(id);
   const mapView = $("map-view");
 
@@ -91,8 +84,6 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
     exports.clear_pets();
     for (const p of saved.pets)
       exports.add_pet(
-        p.n,
-        p.e,
         p.hp,
         p.atk,
         p.def ?? 0,
@@ -140,12 +131,16 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
       btn.addEventListener("click", () => {
         const s = STARTERS[parseInt(btn.dataset.idx)];
         exports.clear_pets();
-        exports.add_pet(s.n, s.e, s.hp, s.atk, s.def, s.agi, 1, 0, s.hp, s.el);
+        exports.add_pet(s.hp, s.atk, s.def, s.agi, 1, 0, s.hp, s.el);
         exports.set_active(0);
         markCaught(s.n);
         panel.style.display = "none";
         $("map-view").removeAttribute("hidden");
         syncFromMoonBit();
+        pets[0].n = s.n;
+        pets[0].e = s.e;
+        saveGame(pets, storedPets, exports);
+        renderPetList();
       });
     });
   }
@@ -155,8 +150,8 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
     for (let i = 0; i < count; i++) {
       if (i >= pets.length) {
         pets.push({
-          n: exports.get_owned_name(i),
-          e: exports.get_owned_emoji(i),
+          n: ds(exports.get_owned_name(i)),
+          e: ds(exports.get_owned_emoji(i)),
           hp: exports.get_owned_hp(i),
           atk: exports.get_owned_atk(i),
           def: exports.get_owned_def(i),
@@ -167,8 +162,6 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
           el: exports.get_owned_element(i),
         });
       } else {
-        pets[i].n = exports.get_owned_name(i);
-        pets[i].e = exports.get_owned_emoji(i);
         pets[i].hp = exports.get_owned_hp(i);
         pets[i].atk = exports.get_owned_atk(i);
         pets[i].def = exports.get_owned_def(i);
@@ -184,8 +177,8 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
     for (let i = 0; i < sc; i++) {
       if (i >= storedPets.length) {
         storedPets.push({
-          n: exports.get_stored_name(i),
-          e: exports.get_stored_emoji(i),
+          n: ds(exports.get_stored_name(i)),
+          e: ds(exports.get_stored_emoji(i)),
           hp: exports.get_stored_hp(i),
           atk: exports.get_stored_atk(i),
           def: exports.get_stored_def(i),
@@ -197,8 +190,6 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
         });
       } else {
         const sp = storedPets[i];
-        sp.n = exports.get_stored_name(i);
-        sp.e = exports.get_stored_emoji(i);
         sp.hp = exports.get_stored_hp(i);
         sp.atk = exports.get_stored_atk(i);
         sp.def = exports.get_stored_def(i);
@@ -552,8 +543,8 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
           return;
         }
         syncBattleUI();
-        markEncountered(exports.get_enemy_name());
-        setLog(`遭遇了 ${exports.get_enemy_name()}！选择你的行动。`);
+        markEncountered(ds(exports.get_enemy_name()));
+        setLog(`遭遇了 ${ds(exports.get_enemy_name())}！选择你的行动。`);
         setButtons(true);
         petSwitchPanel.hidden = false;
         const bi = $("battle-items");
@@ -586,14 +577,14 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
       exports.auto_switch_active();
       syncFromMoonBit();
     }
-    setLog(exports.get_last_message());
+    setLog(ds(exports.get_last_message()));
     setTimeout(exitBattle, 900);
   });
 
   btnUseHerb?.addEventListener("click", () => {
     setButtons(false);
     if (exports.use_herb()) {
-      setLog(exports.get_last_message());
+      setLog(ds(exports.get_last_message()));
       syncBattleUI();
       syncFromMoonBit();
       showDamageFloat($("player-avatar"), 20, true); // heal animation
@@ -608,7 +599,7 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
     }
     setButtons(false);
     if (exports.use_revive(dead)) {
-      setLog(exports.get_last_message());
+      setLog(ds(exports.get_last_message()));
       syncBattleUI();
       syncFromMoonBit();
     }
@@ -677,14 +668,14 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
     if (taken > 0 && !exports.get_last_catch_success()) {
       showDamageFloat($("player-avatar"), taken, false);
     }
-    setLog(exports.get_last_message());
+    setLog(ds(exports.get_last_message()));
     const won = exports.get_last_enemy_defeated(),
       lost = exports.get_last_player_defeated(),
       caught = exports.get_last_catch_success();
     if (caught || won) {
       if (caught) {
         syncFromMoonBit();
-        markCaught(exports.get_enemy_name());
+        markCaught(ds(exports.get_enemy_name()));
       }
       const max = exports.get_max_pets ? exports.get_max_pets() : 5;
       const maxStored = exports.get_max_stored ? exports.get_max_stored() : 10;
@@ -692,7 +683,7 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
         if (storedPets.length < maxStored) {
           exports.store_pet(pets.length - 1);
           syncFromMoonBit();
-          setLog(exports.get_last_message() + ` 队伍已满，新宠物已自动寄存。`);
+          setLog(ds(exports.get_last_message()) + ` 队伍已满，新宠物已自动寄存。`);
         } else {
           showReleasePicker(() => {
             exitBattle();
@@ -860,11 +851,11 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
   function syncBattleUI() {
     setHp("player", exports.get_player_hp(), exports.get_player_max_hp());
     setHp("enemy", exports.get_enemy_hp(), exports.get_enemy_max_hp());
-    $("enemy-avatar").textContent = exports.get_enemy_emoji();
+    $("enemy-avatar").textContent = ds(exports.get_enemy_emoji());
     const elv = exports.get_enemy_lv ? exports.get_enemy_lv() : 1;
     const edef = exports.get_enemy_def ? exports.get_enemy_def() : 0;
     const eagi = exports.get_enemy_agi ? exports.get_enemy_agi() : 0;
-    const eName = exports.get_enemy_name();
+    const eName = ds(exports.get_enemy_name());
     const eState = pokedexState(eName);
     const badge = eState === "caught" ? "📸" : eState === "seen" ? "📷" : "";
     $("enemy-name").textContent =
