@@ -7,6 +7,15 @@ export const EL = { METAL: 0, WOOD: 1, EARTH: 2, WATER: 3, FIRE: 4 }
 
 export const STARTER_PET = { n: '小幽', e: '🧚', hp: 35, atk: 8, lv: 1, cur_hp: 35, el: EL.FIRE }
 
+// 新游戏初始宠物选择（5 选 1）
+export const STARTERS = [
+  { n: '幽林精灵', e: '🧚', hp: 35, atk: 8,  def: 3, agi: 5, el: EL.WOOD,  desc: '均衡型 · 木' },
+  { n: '硫磺石魔', e: '🪨', hp: 42, atk: 7,  def: 7, agi: 2, el: EL.EARTH, desc: '防御型 · 土' },
+  { n: '月影水灵', e: '💧', hp: 32, atk: 6,  def: 2, agi: 8, el: EL.WATER, desc: '速度型 · 水' },
+  { n: '炎魔幼龙', e: '🔥', hp: 30, atk: 12, def: 2, agi: 5, el: EL.FIRE,  desc: '攻击型 · 火' },
+  { n: '晶石巨蛛', e: '🕷️', hp: 35, atk: 10, def: 5, agi: 3, el: EL.METAL, desc: '强攻型 · 金' },
+]
+
 export const INITIAL_ITEMS = { herbs: 3, revives: 1, charms: 2, great_charms: 1 }
 
 // 场景 → MoonBit location_id 映射
