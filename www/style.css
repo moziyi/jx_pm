@@ -157,10 +157,10 @@ body {
 }
 .captured-list { display:flex; flex-wrap:wrap; gap:6px; min-height:28px; }
 .captured-tag {
-  font-size:11px; padding:5px 10px; border-radius:999px;
+  font-size:11px; padding:5px 10px; border-radius:12px;
   background:var(--bg-elevated); border:1px solid var(--border);
-  color:var(--text); cursor:pointer; display:inline-flex; align-items:center;
-  gap:5px; transition:all var(--transition);
+  color:var(--text); cursor:pointer; display:inline-flex; flex-direction:column;
+  gap:2px; transition:all var(--transition); width:150px;
 }
 .captured-tag:hover { border-color:var(--border-hi); background:#1a2a3a; transform:translateY(-1px); }
 .active-pet {
@@ -189,6 +189,16 @@ body {
   background:linear-gradient(90deg, #4da6d9, #a78bfa);
   transition:width 0.4s ease;
 }
+
+.tag-top { display:flex; align-items:center; gap:4px; }
+.tag-bottom { display:flex; align-items:center; gap:4px; margin-top:3px; }
+.tag-hp-text { font-size:10px; color:var(--text-dim); font-family:monospace; min-width:48px; }
+.tag-hp-bar { display:inline-block; width:50px; height:5px; background:rgba(255,255,255,0.1); border-radius:3px; overflow:hidden; }
+.tag-hp-fill { display:block; height:100%; border-radius:3px; }
+.tag-hp-fill.green { background:#4ade80; }
+.tag-hp-fill.yellow { background:#facc15; }
+.tag-hp-fill.red { background:#ef4444; }
+.tag-exp-bar { display:inline-block; width:50px; height:4px; background:rgba(255,255,255,0.1); border-radius:2px; overflow:hidden; }
 .empty-tip { font-size:11px; color:var(--text-dim); }
 
 /* ── 战斗界面 ────────────────────────────────────────────────── */
