@@ -36,7 +36,11 @@ function ds(ptr) {
   return new TextDecoder('utf-16le').decode(mem.slice(ptr, ptr + len * 2))
 }
 
-// ── 3. 初始化 ──────────────────────────────────────────────────────────────
+// ── 3. DOM ─────────────────────────────────────────────────────────────────
+const $ = (id) => document.getElementById(id)
+const mapView = $('map-view')
+
+// ── 4. 初始化 ──────────────────────────────────────────────────────────────
 const saved = loadGame()
 if (saved && saved.pets.length > 0) {
   exports.clear_pets()
@@ -123,9 +127,8 @@ function syncFromMoonBit() {
   renderPetList()
 }
 
-// ── 4. DOM ─────────────────────────────────────────────────────────────────
-const $ = (id) => document.getElementById(id)
-const mapView = $('map-view'), battleView = $('battle-view'), battleLog = $('battle-log')
+// ── 4. DOM（续） ────────────────────────────────────────────────────────────
+const battleView = $('battle-view'), battleLog = $('battle-log')
 const capturedList = $('captured-list'), caughtCount = $('caught-count')
 const btnAttack = $('btn-attack'), btnSkill = $('btn-skill'), btnRun = $('btn-run')
 const btnUseHerb = $('btn-herb'), btnUseRevive = $('btn-revive'), btnUseCharm = $('btn-charm'), btnUseGreatCharm = $('btn-great-charm')
