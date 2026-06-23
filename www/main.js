@@ -449,10 +449,14 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
           }
         } else if (a === "store") {
           if (exports.store_pet(idx)) {
+            storedPets.push(pets[idx]);
+            pets.splice(idx, 1);
             syncFromMoonBit();
           }
         } else if (a === "withdraw") {
           if (exports.withdraw_pet(idx)) {
+            pets.push(storedPets[idx]);
+            storedPets.splice(idx, 1);
             syncFromMoonBit();
           }
         }
@@ -681,7 +685,11 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
       const maxStored = exports.get_max_stored ? exports.get_max_stored() : 10;
       if (pets.length > max) {
         if (storedPets.length < maxStored) {
-          exports.store_pet(pets.length - 1);
+          const lastIdx = pets.length - 1;
+          if (exports.store_pet(lastIdx)) {
+            storedPets.push(pets[lastIdx]);
+            pets.splice(lastIdx, 1);
+          }
           syncFromMoonBit();
           setLog(ds(exports.get_last_message()) + ` 队伍已满，新宠物已自动寄存。`);
         } else {
