@@ -66,7 +66,7 @@ export const EVENTS = {
       { w: 2, type: 'item', msg: '祭坛上供奉着醒神草', item: 'revives', n: 1 },
       { w: 1, type: 'heal_active_full', msg: '神殿的祝福完全治愈了出战宠物！' },
       { w: 1, type: 'hurt_active', msg: '陷阱触发！出战宠物受伤', n: 15 },
-      { w: 2, type: 'item', msg: '发现了古代药草配方', item: 'herbs', n: 2 },
+      { w: 2, type: 'item', msg: '发现了古代药草', item: 'herbs', n: 2 },
       { w: 1, type: 'revive_one', msg: '神殿圣光唤醒了一只倒下的宠物' },
     ]
   },
