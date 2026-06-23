@@ -35,6 +35,23 @@ function ds(ptr) {
   const len = new DataView(mem.buffer).getUint32(ptr - 4, true) & 0xffff
   return new TextDecoder('utf-16le').decode(mem.slice(ptr, ptr + len * 2))
 }
+// 将 JS 字符串写入 WASM 内存（UTF-16LE，4字节长度前缀），返回指针
+function es(str) {
+  const len = str.length
+  const need = 4 + len * 2
+  const oldSize = mem.length
+  const pages = Math.ceil((oldSize + need) / 65536)
+  const curPages = oldSize / 65536
+  if (pages > curPages) { exports.memory.grow(pages - curPages); mem = new Uint8Array(exports.memory.buffer) }
+  const base = oldSize
+  new DataView(mem.buffer).setUint32(base, len, true)
+  for (let i = 0; i < len; i++) {
+    const c = str.charCodeAt(i)
+    mem[base + 4 + i * 2] = c & 0xff
+    mem[base + 4 + i * 2 + 1] = (c >> 8) & 0xff
+  }
+  return base + 4
+}
 
 // ── 3. DOM ─────────────────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id)
@@ -44,7 +61,7 @@ const mapView = $('map-view')
 const saved = loadGame()
 if (saved && saved.pets.length > 0) {
   exports.clear_pets()
-  for (const p of saved.pets) exports.add_pet(p.hp, p.atk, p.def ?? 0, p.agi ?? 0, p.lv ?? 1, p.exp ?? 0, p.cur_hp, p.el ?? 4)
+  for (const p of saved.pets) exports.add_pet(es(p.n), es(p.e), p.hp, p.atk, p.def ?? 0, p.agi ?? 0, p.lv ?? 1, p.exp ?? 0, p.cur_hp, p.el ?? 4)
   exports.set_active(saved.active)
   if (saved.inv) {
     exports.add_herbs(saved.inv.herbs - exports.get_herbs())
@@ -80,16 +97,12 @@ function showStarterPick() {
     btn.addEventListener('click', () => {
       const s = STARTERS[parseInt(btn.dataset.idx)]
       exports.clear_pets()
-      exports.add_pet(s.hp, s.atk, s.def, s.agi, 1, 0, s.hp, s.el)
+      exports.add_pet(es(s.n), es(s.e), s.hp, s.atk, s.def, s.agi, 1, 0, s.hp, s.el)
       exports.set_active(0)
       markCaught(s.n)
       panel.style.display = 'none'
       $('map-view').removeAttribute('hidden')
       syncFromMoonBit()
-      // add_pet 默认名为"未知"，此处修正为选中宠物
-      if (pets.length > 0) { pets[0].n = s.n; pets[0].e = s.e }
-      saveGame(pets, storedPets, exports)
-      renderPetList()
     })
   })
 }
@@ -98,10 +111,9 @@ function syncFromMoonBit() {
   const count = exports.get_owned_count()
   for (let i = 0; i < count; i++) {
     if (i >= pets.length) {
-      const mbName = ds(exports.get_owned_name(i))
-      const mbEmoji = ds(exports.get_owned_emoji(i))
-      pets.push({ n: mbName, e: mbEmoji, hp: exports.get_owned_hp(i), atk: exports.get_owned_atk(i), def: exports.get_owned_def(i), agi: exports.get_owned_agi(i), lv: exports.get_owned_lv(i), exp: exports.get_owned_exp(i), cur_hp: exports.get_owned_cur_hp(i), el: exports.get_owned_element(i) })
+      pets.push({ n: ds(exports.get_owned_name(i)), e: ds(exports.get_owned_emoji(i)), hp: exports.get_owned_hp(i), atk: exports.get_owned_atk(i), def: exports.get_owned_def(i), agi: exports.get_owned_agi(i), lv: exports.get_owned_lv(i), exp: exports.get_owned_exp(i), cur_hp: exports.get_owned_cur_hp(i), el: exports.get_owned_element(i) })
     } else {
+      pets[i].n = ds(exports.get_owned_name(i)); pets[i].e = ds(exports.get_owned_emoji(i))
       pets[i].hp = exports.get_owned_hp(i); pets[i].atk = exports.get_owned_atk(i)
       pets[i].def = exports.get_owned_def(i); pets[i].agi = exports.get_owned_agi(i)
       pets[i].lv = exports.get_owned_lv(i); pets[i].exp = exports.get_owned_exp(i)
@@ -112,10 +124,8 @@ function syncFromMoonBit() {
   const sc = exports.get_stored_count ? exports.get_stored_count() : 0
   for (let i = 0; i < sc; i++) {
     if (i >= storedPets.length) {
-      const mbName = ds(exports.get_stored_name(i))
-      const mbEmoji = ds(exports.get_stored_emoji(i))
       storedPets.push({
-        n: mbName, e: mbEmoji,
+        n: ds(exports.get_stored_name(i)), e: ds(exports.get_stored_emoji(i)),
         hp: exports.get_stored_hp(i), atk: exports.get_stored_atk(i),
         def: exports.get_stored_def(i), agi: exports.get_stored_agi(i),
         lv: exports.get_stored_lv(i), exp: exports.get_stored_exp(i),
@@ -123,6 +133,7 @@ function syncFromMoonBit() {
       })
     } else {
       const sp = storedPets[i]
+      sp.n = ds(exports.get_stored_name(i)); sp.e = ds(exports.get_stored_emoji(i))
       sp.hp = exports.get_stored_hp(i); sp.atk = exports.get_stored_atk(i)
       sp.def = exports.get_stored_def(i); sp.agi = exports.get_stored_agi(i)
       sp.lv = exports.get_stored_lv(i); sp.exp = exports.get_stored_exp(i)
@@ -321,8 +332,8 @@ function showPetMenu(idx, stored, anchor) {
       if (a === 'rename') { const n = prompt('为这只宠物取名：', p.n); if (n && n.trim()) { list[idx].n = n.trim(); saveGame(pets, storedPets, exports); renderPetList() } }
       else if (a === 'setactive') { exports.set_active(idx); syncFromMoonBit() }
       else if (a === 'release') { if (confirm(`确定要放生 ${p.e} ${p.n} 吗？此操作不可撤销。`)) { if (stored) { exports.release_stored_pet(idx) } else { exports.release_pet(idx) }; syncFromMoonBit() } }
-      else if (a === 'store') { if (exports.store_pet(idx)) { const pet = pets.splice(idx, 1)[0]; storedPets.push(pet); syncFromMoonBit() } }
-      else if (a === 'withdraw') { if (exports.withdraw_pet(idx)) { const pet = storedPets.splice(idx, 1)[0]; pets.push(pet); syncFromMoonBit() } }
+      else if (a === 'store') { if (exports.store_pet(idx)) { syncFromMoonBit() } }
+      else if (a === 'withdraw') { if (exports.withdraw_pet(idx)) { syncFromMoonBit() } }
     })
   })
   document.body.appendChild(popup)
@@ -452,12 +463,9 @@ function handleResult() {
     const maxStored = exports.get_max_stored ? exports.get_max_stored() : 10
     if (pets.length > max) {
       if (storedPets.length < maxStored) {
-        const lastPet = pets[pets.length - 1]
-        if (exports.store_pet(pets.length - 1)) {
-          storedPets.push(lastPet); pets.pop()
-        }
+        exports.store_pet(pets.length - 1)
         syncFromMoonBit()
-        setLog(ds(exports.get_last_message()) + ` 队伍已满，${lastPet?.n || '新宠物'} 已自动寄存。`)
+        setLog(ds(exports.get_last_message()) + ` 队伍已满，新宠物已自动寄存。`)
       } else {
         showReleasePicker(() => { exitBattle() })
         return
