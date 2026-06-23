@@ -86,9 +86,9 @@ function syncFromMoonBit() {
   const count = exports.get_owned_count()
   for (let i = 0; i < count; i++) {
     if (i >= pets.length) {
-      pets.push({ n: exports.get_owned_name(i)), e: exports.get_owned_emoji(i)), hp: exports.get_owned_hp(i), atk: exports.get_owned_atk(i), def: exports.get_owned_def(i), agi: exports.get_owned_agi(i), lv: exports.get_owned_lv(i), exp: exports.get_owned_exp(i), cur_hp: exports.get_owned_cur_hp(i), el: exports.get_owned_element(i) })
+      pets.push({ n: exports.get_owned_name(i), e: exports.get_owned_emoji(i), hp: exports.get_owned_hp(i), atk: exports.get_owned_atk(i), def: exports.get_owned_def(i), agi: exports.get_owned_agi(i), lv: exports.get_owned_lv(i), exp: exports.get_owned_exp(i), cur_hp: exports.get_owned_cur_hp(i), el: exports.get_owned_element(i) })
     } else {
-      pets[i].n = exports.get_owned_name(i)); pets[i].e = exports.get_owned_emoji(i))
+      pets[i].n = exports.get_owned_name(i); pets[i].e = exports.get_owned_emoji(i)
       pets[i].hp = exports.get_owned_hp(i); pets[i].atk = exports.get_owned_atk(i)
       pets[i].def = exports.get_owned_def(i); pets[i].agi = exports.get_owned_agi(i)
       pets[i].lv = exports.get_owned_lv(i); pets[i].exp = exports.get_owned_exp(i)
@@ -100,7 +100,7 @@ function syncFromMoonBit() {
   for (let i = 0; i < sc; i++) {
     if (i >= storedPets.length) {
       storedPets.push({
-        n: exports.get_stored_name(i)), e: exports.get_stored_emoji(i)),
+        n: exports.get_stored_name(i), e: exports.get_stored_emoji(i),
         hp: exports.get_stored_hp(i), atk: exports.get_stored_atk(i),
         def: exports.get_stored_def(i), agi: exports.get_stored_agi(i),
         lv: exports.get_stored_lv(i), exp: exports.get_stored_exp(i),
@@ -108,7 +108,7 @@ function syncFromMoonBit() {
       })
     } else {
       const sp = storedPets[i]
-      sp.n = exports.get_stored_name(i)); sp.e = exports.get_stored_emoji(i))
+      sp.n = exports.get_stored_name(i); sp.e = exports.get_stored_emoji(i)
       sp.hp = exports.get_stored_hp(i); sp.atk = exports.get_stored_atk(i)
       sp.def = exports.get_stored_def(i); sp.agi = exports.get_stored_agi(i)
       sp.lv = exports.get_stored_lv(i); sp.exp = exports.get_stored_exp(i)
@@ -369,7 +369,7 @@ document.querySelectorAll('.marker').forEach(btn => {
         return
       }
       syncBattleUI()
-      markEncountered(exports.get_enemy_name()))
+      markEncountered(exports.get_enemy_name())
       setLog(`遭遇了 ${exports.get_enemy_name())}！选择你的行动。`)
       setButtons(true)
       petSwitchPanel.hidden = false
@@ -385,12 +385,12 @@ document.querySelectorAll('.marker').forEach(btn => {
 // ── 10. 战斗 ───────────────────────────────────────────────────────────────
 btnAttack.addEventListener('click', () => { setButtons(false); exports.player_attack(); handleResult() })
 btnSkill?.addEventListener('click', () => { setButtons(false); exports.elemental_skill(); handleResult() })
-btnRun.addEventListener('click', () => { setButtons(false); const wasDead = exports.get_player_hp() <= 0; exports.run_away(); if (wasDead) { exports.auto_switch_active(); syncFromMoonBit() } setLog(exports.get_last_message())); setTimeout(exitBattle, 900) })
+btnRun.addEventListener('click', () => { setButtons(false); const wasDead = exports.get_player_hp() <= 0; exports.run_away(); if (wasDead) { exports.auto_switch_active(); syncFromMoonBit() } setLog(exports.get_last_message()); setTimeout(exitBattle, 900) })
 
 btnUseHerb?.addEventListener('click', () => {
   setButtons(false)
   if (exports.use_herb()) {
-    setLog(exports.get_last_message())); syncBattleUI(); syncFromMoonBit()
+    setLog(exports.get_last_message()); syncBattleUI(); syncFromMoonBit()
     showDamageFloat($('player-avatar'), 20, true) // heal animation
   }
   setButtons(true)
@@ -398,7 +398,7 @@ btnUseHerb?.addEventListener('click', () => {
 btnUseRevive?.addEventListener('click', () => {
   const dead = pets.findIndex(p => p.cur_hp <= 0)
   if (dead < 0) { alert('没有需要复苏的宠物'); return }
-  setButtons(false); if (exports.use_revive(dead)) { setLog(exports.get_last_message())); syncBattleUI(); syncFromMoonBit() }; setButtons(true)
+  setButtons(false); if (exports.use_revive(dead)) { setLog(exports.get_last_message()); syncBattleUI(); syncFromMoonBit() }; setButtons(true)
 })
 btnUseCharm?.addEventListener('click', () => { setButtons(false); if (exports.use_charm()) { handleResult() } else { setButtons(true) } })
 btnUseGreatCharm?.addEventListener('click', () => { setButtons(false); if (exports.use_great_charm()) { handleResult() } else { setButtons(true) } })
@@ -430,10 +430,10 @@ function handleResult() {
   syncBattleUI()
   if (dealt > 0) { showDamageFloat($('enemy-avatar'), dealt, false); shakeScreen() }
   if (taken > 0 && !exports.get_last_catch_success()) { showDamageFloat($('player-avatar'), taken, false) }
-  setLog(exports.get_last_message()))
+  setLog(exports.get_last_message())
   const won = exports.get_last_enemy_defeated(), lost = exports.get_last_player_defeated(), caught = exports.get_last_catch_success()
   if (caught || won) {
-    if (caught) { syncFromMoonBit(); markCaught(exports.get_enemy_name())) }
+    if (caught) { syncFromMoonBit(); markCaught(exports.get_enemy_name()) }
     const max = exports.get_max_pets ? exports.get_max_pets() : 5
     const maxStored = exports.get_max_stored ? exports.get_max_stored() : 10
     if (pets.length > max) {
@@ -560,7 +560,7 @@ function handleSpecialEvent(etype) {
 function syncBattleUI() {
   setHp('player', exports.get_player_hp(), exports.get_player_max_hp())
   setHp('enemy', exports.get_enemy_hp(), exports.get_enemy_max_hp())
-  $('enemy-avatar').textContent = exports.get_enemy_emoji())
+  $('enemy-avatar').textContent = exports.get_enemy_emoji()
   const elv = exports.get_enemy_lv ? exports.get_enemy_lv() : 1
   const edef = exports.get_enemy_def ? exports.get_enemy_def() : 0
   const eagi = exports.get_enemy_agi ? exports.get_enemy_agi() : 0
