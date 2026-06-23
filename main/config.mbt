@@ -142,7 +142,9 @@ fn get_random_enemy(id : Int) -> LocationConfig {
 // 初始宠物
 
 ///|
+///|
 let _starter : CapturedEntry = {
+  id: 1,
   name: "小幽",
   emoji: "🧚",
   hp: 35,

@@ -14,8 +14,19 @@ export function getUUID() {
   return id
 }
 
-function parsePet(lines, i) {
+function parsePet(lines, i, ver) {
+  if (ver >= 8) {
+    return {
+      id: parseInt(lines[i]) || 0,
+      n: lines[i+1], e: lines[i+2],
+      hp: parseInt(lines[i+3]), atk: parseInt(lines[i+4]),
+      def: parseInt(lines[i+5]) || 0, agi: parseInt(lines[i+6]) || 0,
+      lv: parseInt(lines[i+7]) || 1, exp: parseInt(lines[i+8]) || 0,
+      cur_hp: parseInt(lines[i+9]), el: parseInt(lines[i+10]) || 0
+    }
+  }
   return {
+    id: 0,
     n: lines[i], e: lines[i+1],
     hp: parseInt(lines[i+2]), atk: parseInt(lines[i+3]),
     def: parseInt(lines[i+4]) || 0, agi: parseInt(lines[i+5]) || 0,
@@ -40,17 +51,18 @@ export function loadGame() {
     if (ver >= 7) {
       inv = { herbs: parseInt(lines[4])||0, revives: parseInt(lines[5])||0, charms: parseInt(lines[6])||0, great_charms: parseInt(lines[7])||0 }
       const ownedCount = parseInt(lines[8]) || 0
+      const petFields = ver >= 8 ? 11 : 10
       let p = 9
       const pets = []
       for (let j = 0; j < ownedCount; j++) {
-        pets.push(parsePet(lines, p))
-        p += 10
+        pets.push(parsePet(lines, p, ver))
+        p += petFields
       }
       const storedCount = parseInt(lines[p]) || 0
       p++
       for (let j = 0; j < storedCount; j++) {
-        stored.push(parsePet(lines, p))
-        p += 10
+        stored.push(parsePet(lines, p, ver))
+        p += petFields
       }
       return { uuid, active, inv, pets, stored }
     } else if (ver >= 6) {
@@ -111,11 +123,11 @@ export function saveGame(pets, storedPets, exports) {
   const r = exports.get_revives ? exports.get_revives() : 1
   const c = exports.get_charms ? exports.get_charms() : 2
   const gc = exports.get_great_charms ? exports.get_great_charms() : 1
-  const petStr = (p) => `${p.n}\n${p.e}\n${p.hp}\n${p.atk}\n${p.def ?? 0}\n${p.agi ?? 0}\n${p.lv ?? 1}\n${p.exp ?? 0}\n${p.cur_hp}\n${p.el ?? 4}`
+  const petStr = (p) => `${p.id ?? 0}\n${p.n}\n${p.e}\n${p.hp}\n${p.atk}\n${p.def ?? 0}\n${p.agi ?? 0}\n${p.lv ?? 1}\n${p.exp ?? 0}\n${p.cur_hp}\n${p.el ?? 4}`
   const data = `${getUUID()}\n${exports.get_active()}\n${h}\n${r}\n${c}\n${gc}\n` +
     `${pets.length}\n` +
     pets.map(petStr).join('\n') + (pets.length > 0 ? '\n' : '') +
     `${storedPets.length}\n` +
     storedPets.map(petStr).join('\n') + (storedPets.length > 0 ? '\n' : '')
-  localStorage.setItem(SAVE_KEY, `7\n${checksum(data)}\n${data}`)
+  localStorage.setItem(SAVE_KEY, `8\n${checksum(data)}\n${data}`)
 }

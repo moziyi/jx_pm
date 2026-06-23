@@ -149,6 +149,12 @@ pub fn boost_enemy(hp_pct : Int, atk_pct : Int) -> Unit {
 ///|
 pub fn clear_pets() -> Unit {
   _state.owned = []
+  _state.stored = []
+}
+
+/// 重置 id 计数器（加载存档后同步用）
+pub fn reset_next_id(v : Int) -> Unit {
+  _id_counter.next = v
 }
 
 ///|
@@ -164,6 +170,7 @@ pub fn add_pet(
 ) -> Int {
   let idx = _state.owned.length()
   _state.owned.push({
+    id: next_id(),
     name: "未知",
     emoji: "❓",
     hp,
@@ -552,6 +559,15 @@ pub fn get_owned_exp(i : Int) -> Int {
   }
 }
 
+///|
+pub fn get_owned_id(i : Int) -> Int {
+  if i >= 0 && i < _state.owned.length() {
+    _state.owned[i].id
+  } else {
+    0
+  }
+}
+
 // ── 寄存宠物 getter ───────────────────────────────────────────────────────
 
 ///|
@@ -626,6 +642,15 @@ pub fn get_stored_lv(i : Int) -> Int {
 pub fn get_stored_exp(i : Int) -> Int {
   if i >= 0 && i < _state.stored.length() {
     _state.stored[i].exp
+  } else {
+    0
+  }
+}
+
+///|
+pub fn get_stored_id(i : Int) -> Int {
+  if i >= 0 && i < _state.stored.length() {
+    _state.stored[i].id
   } else {
     0
   }

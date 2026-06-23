@@ -3,6 +3,7 @@
 
 ///|
 priv struct CapturedEntry {
+  id : Int
   name : String
   emoji : String
   mut hp : Int
@@ -13,6 +14,19 @@ priv struct CapturedEntry {
   mut exp : Int
   mut cur_hp : Int
   element : Element
+}
+
+///|
+priv struct IdCounter { mut next : Int }
+
+///|
+let _id_counter : IdCounter = { next: 2 }
+
+///|
+fn next_id() -> Int {
+  let id = _id_counter.next
+  _id_counter.next = _id_counter.next + 1
+  id
 }
 
 // 道具
