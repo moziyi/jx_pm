@@ -4,8 +4,8 @@ import { checksum, getUUID, loadGame, saveGame } from './storage.js'
 
 (async () => {
 
-const wasmUrl = '/_build/wasm/release/build/main/main.wasm'
-let exports, mem, pets = [], storedPets = [], storedPage = 0
+const wasmUrl = '/_build/wasm-gc/release/build/main/main.wasm'
+let exports, pets = [], storedPets = [], storedPage = 0
 let dragSrcIdx = -1, dragSrcStored = -1, wasDragging = false
 
 // ── 图鉴 ──
@@ -23,40 +23,12 @@ try {
   const buf = await fetch(wasmUrl).then(r => { if (!r.ok) throw Error(`HTTP ${r.status}`); return r.arrayBuffer() })
   const { instance } = await WebAssembly.instantiate(buf, { env: { math_random: () => Math.random() } })
   exports = instance.exports
-  mem = new Uint8Array(exports.memory.buffer)
 } catch (err) {
   document.body.innerHTML = `<div style="padding:24px;color:#E24B4A;background:#1a1a2e;font-family:monospace;max-width:580px;margin:40px auto;border-radius:12px;border:1px solid #E24B4A;"><b>WASM 加载失败</b><br><br>${err.message}</div>`
   return
 }
 
-// ── 2. 工具 ────────────────────────────────────────────────────────────────
-function ds(ptr) {
-  if (ptr === 0) return ''
-  const len = new DataView(mem.buffer).getUint32(ptr - 4, true) & 0xffff
-  return new TextDecoder('utf-16le').decode(mem.slice(ptr, ptr + len * 2))
-}
-// 将 JS 字符串写入 WASM 内存（UTF-16LE，4字节长度前缀），返回指针
-let _esOff = 0 // 递增偏移，复用已分配空间
-function es(str) {
-  const len = str.length
-  const need = 4 + len * 2
-  if (_esOff + need > exports.memory.buffer.byteLength) {
-    const delta = _esOff + need - exports.memory.buffer.byteLength
-    exports.memory.grow(Math.ceil(delta / 65536))
-    mem = new Uint8Array(exports.memory.buffer)
-  }
-  const base = _esOff
-  new DataView(mem.buffer).setUint32(base, len, true)
-  for (let i = 0; i < len; i++) {
-    const c = str.charCodeAt(i)
-    mem[base + 4 + i * 2] = c & 0xff
-    mem[base + 4 + i * 2 + 1] = (c >> 8) & 0xff
-  }
-  _esOff = base + need
-  return base + 4
-}
-
-// ── 3. DOM ─────────────────────────────────────────────────────────────────
+// ── 2. DOM ─────────────────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id)
 const mapView = $('map-view')
 
@@ -64,7 +36,7 @@ const mapView = $('map-view')
 const saved = loadGame()
 if (saved && saved.pets.length > 0) {
   exports.clear_pets()
-  for (const p of saved.pets) exports.add_pet(es(p.n), es(p.e), p.hp, p.atk, p.def ?? 0, p.agi ?? 0, p.lv ?? 1, p.exp ?? 0, p.cur_hp, p.el ?? 4)
+  for (const p of saved.pets) exports.add_pet(p.n, p.e, p.hp, p.atk, p.def ?? 0, p.agi ?? 0, p.lv ?? 1, p.exp ?? 0, p.cur_hp, p.el ?? 4)
   exports.set_active(saved.active)
   if (saved.inv) {
     exports.add_herbs(saved.inv.herbs - exports.get_herbs())
@@ -100,7 +72,7 @@ function showStarterPick() {
     btn.addEventListener('click', () => {
       const s = STARTERS[parseInt(btn.dataset.idx)]
       exports.clear_pets()
-      exports.add_pet(es(s.n), es(s.e), s.hp, s.atk, s.def, s.agi, 1, 0, s.hp, s.el)
+      exports.add_pet(s.n, s.e, s.hp, s.atk, s.def, s.agi, 1, 0, s.hp, s.el)
       exports.set_active(0)
       markCaught(s.n)
       panel.style.display = 'none'
@@ -114,9 +86,9 @@ function syncFromMoonBit() {
   const count = exports.get_owned_count()
   for (let i = 0; i < count; i++) {
     if (i >= pets.length) {
-      pets.push({ n: ds(exports.get_owned_name(i)), e: ds(exports.get_owned_emoji(i)), hp: exports.get_owned_hp(i), atk: exports.get_owned_atk(i), def: exports.get_owned_def(i), agi: exports.get_owned_agi(i), lv: exports.get_owned_lv(i), exp: exports.get_owned_exp(i), cur_hp: exports.get_owned_cur_hp(i), el: exports.get_owned_element(i) })
+      pets.push({ n: exports.get_owned_name(i)), e: exports.get_owned_emoji(i)), hp: exports.get_owned_hp(i), atk: exports.get_owned_atk(i), def: exports.get_owned_def(i), agi: exports.get_owned_agi(i), lv: exports.get_owned_lv(i), exp: exports.get_owned_exp(i), cur_hp: exports.get_owned_cur_hp(i), el: exports.get_owned_element(i) })
     } else {
-      pets[i].n = ds(exports.get_owned_name(i)); pets[i].e = ds(exports.get_owned_emoji(i))
+      pets[i].n = exports.get_owned_name(i)); pets[i].e = exports.get_owned_emoji(i))
       pets[i].hp = exports.get_owned_hp(i); pets[i].atk = exports.get_owned_atk(i)
       pets[i].def = exports.get_owned_def(i); pets[i].agi = exports.get_owned_agi(i)
       pets[i].lv = exports.get_owned_lv(i); pets[i].exp = exports.get_owned_exp(i)
@@ -128,7 +100,7 @@ function syncFromMoonBit() {
   for (let i = 0; i < sc; i++) {
     if (i >= storedPets.length) {
       storedPets.push({
-        n: ds(exports.get_stored_name(i)), e: ds(exports.get_stored_emoji(i)),
+        n: exports.get_stored_name(i)), e: exports.get_stored_emoji(i)),
         hp: exports.get_stored_hp(i), atk: exports.get_stored_atk(i),
         def: exports.get_stored_def(i), agi: exports.get_stored_agi(i),
         lv: exports.get_stored_lv(i), exp: exports.get_stored_exp(i),
@@ -136,7 +108,7 @@ function syncFromMoonBit() {
       })
     } else {
       const sp = storedPets[i]
-      sp.n = ds(exports.get_stored_name(i)); sp.e = ds(exports.get_stored_emoji(i))
+      sp.n = exports.get_stored_name(i)); sp.e = exports.get_stored_emoji(i))
       sp.hp = exports.get_stored_hp(i); sp.atk = exports.get_stored_atk(i)
       sp.def = exports.get_stored_def(i); sp.agi = exports.get_stored_agi(i)
       sp.lv = exports.get_stored_lv(i); sp.exp = exports.get_stored_exp(i)
@@ -397,8 +369,8 @@ document.querySelectorAll('.marker').forEach(btn => {
         return
       }
       syncBattleUI()
-      markEncountered(ds(exports.get_enemy_name()))
-      setLog(`遭遇了 ${ds(exports.get_enemy_name())}！选择你的行动。`)
+      markEncountered(exports.get_enemy_name()))
+      setLog(`遭遇了 ${exports.get_enemy_name())}！选择你的行动。`)
       setButtons(true)
       petSwitchPanel.hidden = false
       const bi = $('battle-items'); if (bi) bi.hidden = false
@@ -413,12 +385,12 @@ document.querySelectorAll('.marker').forEach(btn => {
 // ── 10. 战斗 ───────────────────────────────────────────────────────────────
 btnAttack.addEventListener('click', () => { setButtons(false); exports.player_attack(); handleResult() })
 btnSkill?.addEventListener('click', () => { setButtons(false); exports.elemental_skill(); handleResult() })
-btnRun.addEventListener('click', () => { setButtons(false); const wasDead = exports.get_player_hp() <= 0; exports.run_away(); if (wasDead) { exports.auto_switch_active(); syncFromMoonBit() } setLog(ds(exports.get_last_message())); setTimeout(exitBattle, 900) })
+btnRun.addEventListener('click', () => { setButtons(false); const wasDead = exports.get_player_hp() <= 0; exports.run_away(); if (wasDead) { exports.auto_switch_active(); syncFromMoonBit() } setLog(exports.get_last_message())); setTimeout(exitBattle, 900) })
 
 btnUseHerb?.addEventListener('click', () => {
   setButtons(false)
   if (exports.use_herb()) {
-    setLog(ds(exports.get_last_message())); syncBattleUI(); syncFromMoonBit()
+    setLog(exports.get_last_message())); syncBattleUI(); syncFromMoonBit()
     showDamageFloat($('player-avatar'), 20, true) // heal animation
   }
   setButtons(true)
@@ -426,7 +398,7 @@ btnUseHerb?.addEventListener('click', () => {
 btnUseRevive?.addEventListener('click', () => {
   const dead = pets.findIndex(p => p.cur_hp <= 0)
   if (dead < 0) { alert('没有需要复苏的宠物'); return }
-  setButtons(false); if (exports.use_revive(dead)) { setLog(ds(exports.get_last_message())); syncBattleUI(); syncFromMoonBit() }; setButtons(true)
+  setButtons(false); if (exports.use_revive(dead)) { setLog(exports.get_last_message())); syncBattleUI(); syncFromMoonBit() }; setButtons(true)
 })
 btnUseCharm?.addEventListener('click', () => { setButtons(false); if (exports.use_charm()) { handleResult() } else { setButtons(true) } })
 btnUseGreatCharm?.addEventListener('click', () => { setButtons(false); if (exports.use_great_charm()) { handleResult() } else { setButtons(true) } })
@@ -458,17 +430,17 @@ function handleResult() {
   syncBattleUI()
   if (dealt > 0) { showDamageFloat($('enemy-avatar'), dealt, false); shakeScreen() }
   if (taken > 0 && !exports.get_last_catch_success()) { showDamageFloat($('player-avatar'), taken, false) }
-  setLog(ds(exports.get_last_message()))
+  setLog(exports.get_last_message()))
   const won = exports.get_last_enemy_defeated(), lost = exports.get_last_player_defeated(), caught = exports.get_last_catch_success()
   if (caught || won) {
-    if (caught) { syncFromMoonBit(); markCaught(ds(exports.get_enemy_name())) }
+    if (caught) { syncFromMoonBit(); markCaught(exports.get_enemy_name())) }
     const max = exports.get_max_pets ? exports.get_max_pets() : 5
     const maxStored = exports.get_max_stored ? exports.get_max_stored() : 10
     if (pets.length > max) {
       if (storedPets.length < maxStored) {
         exports.store_pet(pets.length - 1)
         syncFromMoonBit()
-        setLog(ds(exports.get_last_message()) + ` 队伍已满，新宠物已自动寄存。`)
+        setLog(exports.get_last_message()) + ` 队伍已满，新宠物已自动寄存。`)
       } else {
         showReleasePicker(() => { exitBattle() })
         return
@@ -588,11 +560,11 @@ function handleSpecialEvent(etype) {
 function syncBattleUI() {
   setHp('player', exports.get_player_hp(), exports.get_player_max_hp())
   setHp('enemy', exports.get_enemy_hp(), exports.get_enemy_max_hp())
-  $('enemy-avatar').textContent = ds(exports.get_enemy_emoji())
+  $('enemy-avatar').textContent = exports.get_enemy_emoji())
   const elv = exports.get_enemy_lv ? exports.get_enemy_lv() : 1
   const edef = exports.get_enemy_def ? exports.get_enemy_def() : 0
   const eagi = exports.get_enemy_agi ? exports.get_enemy_agi() : 0
-  const eName = ds(exports.get_enemy_name())
+  const eName = exports.get_enemy_name())
   const eState = pokedexState(eName)
   const badge = eState === 'caught' ? '📸' : eState === 'seen' ? '📷' : ''
   $('enemy-name').textContent = (badge ? badge + ' ' : '') + eName + ' Lv' + elv + ' ' + (ELEMENTS[exports.get_enemy_element()] || '?')
