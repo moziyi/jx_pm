@@ -5,7 +5,7 @@ import { checksum, getUUID, loadGame, saveGame } from './storage.js'
 (async () => {
 
 const wasmUrl = '/_build/wasm/release/build/main/main.wasm'
-let exports, mem, pets = [], storedPets = []
+let exports, mem, pets = [], storedPets = [], storedPage = 0
 
 // ── 1. WASM 加载 ───────────────────────────────────────────────────────────
 try {
@@ -154,12 +154,50 @@ function renderPetList() {
   } else {
     capturedList.innerHTML = renderTags(pets, false)
   }
+  const STORED_PAGE_SIZE = 20
   const storedList = $('stored-list')
+  const storedPager = $('stored-pager')
   if (storedList) {
     if (storedPets.length === 0) {
       storedList.innerHTML = '<span class="empty-tip">寄存空间为空</span>'
+      if (storedPager) storedPager.innerHTML = ''
     } else {
-      storedList.innerHTML = renderTags(storedPets, true)
+      const totalPages = Math.ceil(storedPets.length / STORED_PAGE_SIZE)
+      if (storedPage >= totalPages) storedPage = totalPages - 1
+      if (storedPage < 0) storedPage = 0
+      const start = storedPage * STORED_PAGE_SIZE
+      const page = storedPets.slice(start, start + STORED_PAGE_SIZE)
+      storedList.innerHTML = page.length === 0
+        ? '<span class="empty-tip">寄存空间为空</span>'
+        : page.map((p, i) => {
+            const realIdx = start + i
+            const el = ELEMENTS[p.el ?? 4] || '?'
+            const dead = p.cur_hp <= 0
+            const lv = p.lv ?? 1
+            const exp = p.exp ?? 0
+            const expNext = exports.exp_to_next ? exports.exp_to_next(lv) : 999
+            const expPct = expNext > 0 ? Math.min(100, exp / expNext * 100) : 100
+            const expBar = dead ? '' : `<span class="tag-exp-wrap"><span class="tag-exp-fill" style="width:${expPct}%"></span></span>`
+            return `<span class="captured-tag stored-pet${dead?' fainted':''}" data-idx="${realIdx}" data-stored="1" title="HP:${p.cur_hp}/${p.hp} ATK:${p.atk} DEF:${p.def??0} AGI:${p.agi??0} 元素:${el}${dead?' 💀被击败' : ''} 📦寄存中">
+              <span class="tag-emoji">${p.e}</span><span class="tag-name">${p.n}</span>
+              <span class="tag-lv">Lv${lv}${lv >= (exports.get_max_level ? exports.get_max_level() : 50) ? ' MAX' : ''}</span>
+              <span class="tag-element">${el}</span>
+              <span class="tag-stats">${dead ? '💀' : p.cur_hp+'/'+p.hp}</span>
+              ${expBar}
+            </span>`
+          }).join('')
+      if (storedPager && totalPages > 1) {
+        storedPager.innerHTML = `<button class="page-btn" data-page="prev" ${storedPage===0?'disabled':''}>◀</button><span class="page-info">${storedPage+1}/${totalPages}</span><button class="page-btn" data-page="next" ${storedPage>=totalPages-1?'disabled':''}>▶</button>`
+        storedPager.querySelectorAll('.page-btn').forEach(b => {
+          b.addEventListener('click', () => {
+            if (b.dataset.page === 'prev' && storedPage > 0) storedPage--
+            else if (b.dataset.page === 'next' && storedPage < totalPages - 1) storedPage++
+            renderPetList()
+          })
+        })
+      } else if (storedPager) {
+        storedPager.innerHTML = ''
+      }
     }
   }
   document.querySelectorAll('.captured-tag').forEach(el => {
