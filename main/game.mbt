@@ -168,9 +168,24 @@ pub fn add_pet(
   cur_hp : Int,
   element : Int,
 ) -> Int {
+  add_pet_with_id(next_id(), hp, atk, def, agi, lv, exp, cur_hp, element)
+}
+
+/// 带指定 id 的 add_pet（存档恢复用）
+pub fn add_pet_with_id(
+  id : Int,
+  hp : Int,
+  atk : Int,
+  def : Int,
+  agi : Int,
+  lv : Int,
+  exp : Int,
+  cur_hp : Int,
+  element : Int,
+) -> Int {
   let idx = _state.owned.length()
   _state.owned.push({
-    id: next_id(),
+    id,
     name: "未知",
     emoji: "❓",
     hp,

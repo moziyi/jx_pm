@@ -83,7 +83,8 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
   if (saved && saved.pets.length > 0) {
     exports.clear_pets();
     for (const p of saved.pets)
-      exports.add_pet(
+      exports.add_pet_with_id(
+        p.id ?? 0,
         p.hp,
         p.atk,
         p.def ?? 0,
