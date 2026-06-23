@@ -22,7 +22,7 @@ pub fn new_game() -> Unit {
 
 ///|
 pub fn start_battle(location_id : Int) -> Bool {
-  let cfg = get_location(location_id)
+  let cfg = get_random_enemy(location_id)
   // 若 active 宠物战斗不能，自动切换
   if _state.owned[_state.active].cur_hp <= 0 {
     for i = 0; i < _state.owned.length(); i = i + 1 {
