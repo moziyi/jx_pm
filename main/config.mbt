@@ -165,6 +165,10 @@ let _init_inventory : Inventory = {
   revives: 1,
   charms: 2,
   great_charms: 1,
+  herb50: 1,
+  herb_half: 1,
+  herb_full: 0,
+  revive_full: 0,
 }
 
 // 常量

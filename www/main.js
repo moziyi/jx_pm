@@ -116,6 +116,10 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
         (saved.inv.great_charms || 1) -
           (exports.get_great_charms ? exports.get_great_charms() : 1),
       );
+      if (exports.add_herb50) exports.add_herb50((saved.inv.herb50 || 1) - (exports.get_herb50 ? exports.get_herb50() : 1));
+      if (exports.add_herb_half) exports.add_herb_half((saved.inv.herb_half || 1) - (exports.get_herb_half ? exports.get_herb_half() : 1));
+      if (exports.add_herb_full) exports.add_herb_full((saved.inv.herb_full || 0) - (exports.get_herb_full ? exports.get_herb_full() : 0));
+      if (exports.add_revive_full) exports.add_revive_full((saved.inv.revive_full || 0) - (exports.get_revive_full ? exports.get_revive_full() : 0));
     }
     pets = saved.pets;
     storedPets = saved.stored || [];
@@ -228,6 +232,10 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
     btnRun = $("btn-run");
   const btnUseHerb = $("btn-herb"),
     btnUseRevive = $("btn-revive"),
+    btnUseHerb50 = $("btn-herb50"),
+    btnUseHerbHalf = $("btn-herb-half"),
+    btnUseHerbFull = $("btn-herb-full"),
+    btnUseReviveFull = $("btn-revive-full"),
     btnUseCharm = $("btn-charm"),
     btnUseGreatCharm = $("btn-great-charm");
   const petSwitchPanel = $("pet-switch");
@@ -489,7 +497,11 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
     const h = exports.get_herbs(),
       r = exports.get_revives(),
       c = exports.get_charms(),
-      gc = exports.get_great_charms ? exports.get_great_charms() : 0;
+      gc = exports.get_great_charms ? exports.get_great_charms() : 0,
+      h50 = exports.get_herb50 ? exports.get_herb50() : 0,
+      hh = exports.get_herb_half ? exports.get_herb_half() : 0,
+      hf = exports.get_herb_full ? exports.get_herb_full() : 0,
+      rf = exports.get_revive_full ? exports.get_revive_full() : 0;
     const set = (id, n) => {
       const el = $(id);
       if (el) el.textContent = "x" + n;
@@ -498,10 +510,22 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
     set("map-herb-count", h);
     set("revive-count", r);
     set("map-revive-count", r);
+    set("herb50-count", h50);
+    set("map-herb50-count", h50);
+    set("herb-half-count", hh);
+    set("map-herb-half-count", hh);
+    set("herb-full-count", hf);
+    set("map-herb-full-count", hf);
+    set("revive-full-count", rf);
+    set("map-revive-full-count", rf);
     set("charm-count", c);
     set("great-charm-count", gc);
     if (btnUseHerb) btnUseHerb.disabled = h <= 0;
     if (btnUseRevive) btnUseRevive.disabled = r <= 0;
+    if (btnUseHerb50) btnUseHerb50.disabled = h50 <= 0;
+    if (btnUseHerbHalf) btnUseHerbHalf.disabled = hh <= 0;
+    if (btnUseHerbFull) btnUseHerbFull.disabled = hf <= 0;
+    if (btnUseReviveFull) btnUseReviveFull.disabled = rf <= 0;
     if (btnUseCharm) btnUseCharm.disabled = c <= 0;
   }
 
@@ -520,6 +544,34 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
       return;
     }
     exports.use_revive(dead);
+    syncFromMoonBit();
+  });
+  $("map-herb50")?.addEventListener("click", () => {
+    if (exports.get_herb50 ? exports.get_herb50() > 0 : false) {
+      exports.use_herb50();
+      syncFromMoonBit();
+    }
+  });
+  $("map-herb-half")?.addEventListener("click", () => {
+    if (exports.get_herb_half ? exports.get_herb_half() > 0 : false) {
+      exports.use_herb_half();
+      syncFromMoonBit();
+    }
+  });
+  $("map-herb-full")?.addEventListener("click", () => {
+    if (exports.get_herb_full ? exports.get_herb_full() > 0 : false) {
+      exports.use_herb_full();
+      syncFromMoonBit();
+    }
+  });
+  $("map-revive-full")?.addEventListener("click", () => {
+    if (exports.get_revive_full ? exports.get_revive_full() <= 0 : true) return;
+    const dead = pets.findIndex((p) => p.cur_hp <= 0);
+    if (dead < 0) {
+      alert("没有需要复苏的宠物");
+      return;
+    }
+    exports.use_revive_full(dead);
     syncFromMoonBit();
   });
 
@@ -615,6 +667,50 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
     }
     setButtons(false);
     if (exports.use_revive(dead)) {
+      setLog(ds(exports.get_last_message()));
+      syncBattleUI();
+      syncFromMoonBit();
+    }
+    setButtons(true);
+  });
+  btnUseHerb50?.addEventListener("click", () => {
+    setButtons(false);
+    if (exports.use_herb50()) {
+      setLog(ds(exports.get_last_message()));
+      syncBattleUI();
+      syncFromMoonBit();
+      showDamageFloat($("player-avatar"), 50, true);
+    }
+    setButtons(true);
+  });
+  btnUseHerbHalf?.addEventListener("click", () => {
+    setButtons(false);
+    if (exports.use_herb_half()) {
+      setLog(ds(exports.get_last_message()));
+      syncBattleUI();
+      syncFromMoonBit();
+      showDamageFloat($("player-avatar"), 25, true);
+    }
+    setButtons(true);
+  });
+  btnUseHerbFull?.addEventListener("click", () => {
+    setButtons(false);
+    if (exports.use_herb_full()) {
+      setLog(ds(exports.get_last_message()));
+      syncBattleUI();
+      syncFromMoonBit();
+      showDamageFloat($("player-avatar"), 999, true);
+    }
+    setButtons(true);
+  });
+  btnUseReviveFull?.addEventListener("click", () => {
+    const dead = pets.findIndex((p) => p.cur_hp <= 0);
+    if (dead < 0) {
+      alert("没有需要复苏的宠物");
+      return;
+    }
+    setButtons(false);
+    if (exports.use_revive_full(dead)) {
       setLog(ds(exports.get_last_message()));
       syncBattleUI();
       syncFromMoonBit();
@@ -728,6 +824,10 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
           btnSkill,
           btnUseHerb,
           btnUseRevive,
+          btnUseHerb50,
+          btnUseHerbHalf,
+          btnUseHerbFull,
+          btnUseReviveFull,
           btnUseCharm,
           btnUseGreatCharm,
         ].forEach((b) => {
@@ -942,6 +1042,10 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
       btnRun,
       btnUseHerb,
       btnUseRevive,
+      btnUseHerb50,
+      btnUseHerbHalf,
+      btnUseHerbFull,
+      btnUseReviveFull,
       btnUseCharm,
       btnUseGreatCharm,
     ].forEach((b) => {

@@ -14,6 +14,10 @@ pub fn new_game() -> Unit {
   _inventory.revives = _init_inventory.revives
   _inventory.charms = _init_inventory.charms
   _inventory.great_charms = _init_inventory.great_charms
+  _inventory.herb50 = _init_inventory.herb50
+  _inventory.herb_half = _init_inventory.herb_half
+  _inventory.herb_full = _init_inventory.herb_full
+  _inventory.revive_full = _init_inventory.revive_full
   _result.exp_gained = 0
   _result.leveled_up = false
   _result.dodged = false

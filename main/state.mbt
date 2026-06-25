@@ -37,6 +37,10 @@ priv struct Inventory {
   mut revives : Int
   mut charms : Int
   mut great_charms : Int
+  mut herb50 : Int
+  mut herb_half : Int
+  mut herb_full : Int
+  mut revive_full : Int
 }
 
 // 行动结果
@@ -119,6 +123,10 @@ let _inventory : Inventory = {
   revives: 1,
   charms: 2,
   great_charms: 1,
+  herb50: 1,
+  herb_half: 1,
+  herb_full: 0,
+  revive_full: 0,
 }
 
 // 敌方基础属性（用于 boost_enemy 计算）
