@@ -16,7 +16,7 @@ export const STARTERS = [
   { n: '晶石巨蛛', e: '🕷️', hp: 35, atk: 10, def: 5, agi: 3, el: EL.METAL, desc: '强攻型 · 金' },
 ]
 
-export const INITIAL_ITEMS = { herbs: 3, revives: 1, charms: 2, great_charms: 1 }
+export const INITIAL_ITEMS = { herbs: 3, revives: 1, charms: 2, great_charms: 1, herb50: 1, herb_half: 1, herb_full: 0, revive_full: 0 }
 
 // 场景 → MoonBit location_id 映射
 export const SCENES = {
@@ -50,6 +50,7 @@ export const EVENTS = {
       { w: 1, type: 'hurt_active', msg: '踩到了毒刺！出战宠物受伤', n: 10 },
       { w: 2, type: 'revive_one', msg: '发现了倒在路边的宠物，用药草救醒了它' },
       { w: 1, type: 'item', msg: '拾到了遗落的幻兽符！', item: 'charms', n: 1 },
+      { w: 1, type: 'item', msg: '在古树下发现了强效药草！', item: 'herb50', n: 1 },
     ]
   },
   cave: {
@@ -65,6 +66,7 @@ export const EVENTS = {
       { w: 1, type: 'hurt_all', msg: '矿洞塌方！全体宠物受伤', n: 8 },
       { w: 2, type: 'item', msg: '发现了闪亮的幻兽符', item: 'charms', n: 1 },
       { w: 1, type: 'revive_one', msg: '矿洞深处传来了宠物苏醒的声音' },
+      { w: 1, type: 'item', msg: '矿壁上生长着半恢复草！', item: 'herb_half', n: 1 },
     ]
   },
   ruins: {
@@ -80,6 +82,7 @@ export const EVENTS = {
       { w: 1, type: 'hurt_active', msg: '陷阱触发！出战宠物受伤', n: 15 },
       { w: 2, type: 'item', msg: '发现了古代药草', item: 'herbs', n: 2 },
       { w: 1, type: 'revive_one', msg: '神殿圣光唤醒了一只倒下的宠物' },
+      { w: 1, type: 'item', msg: '神龛中发现了全恢复草！', item: 'herb_full', n: 1 },
     ]
   },
   lake: {
@@ -95,6 +98,7 @@ export const EVENTS = {
       { w: 1, type: 'hurt_all', msg: '湖中漩涡！全体宠物受伤', n: 10 },
       { w: 2, type: 'item', msg: '月光下发现了幻兽符', item: 'charms', n: 1 },
       { w: 1, type: 'heal_active_full', msg: '湖中仙子祝福了出战宠物' },
+      { w: 1, type: 'item', msg: '湖底宝箱中发现了满血醒神草！', item: 'revive_full', n: 1 },
     ]
   },
   volcano: {
@@ -110,6 +114,7 @@ export const EVENTS = {
       { w: 1, type: 'hurt_active', msg: '被岩浆溅射灼伤！', n: 12 },
       { w: 2, type: 'item', msg: '拾到了火焰中的幻兽符', item: 'charms', n: 1 },
       { w: 2, type: 'revive_one', msg: '不灭火种唤醒了一只宠物' },
+      { w: 1, type: 'item', msg: '火山岩中发现了强效药草！', item: 'herb50', n: 1 },
     ]
   },
   realm: {
@@ -125,6 +130,8 @@ export const EVENTS = {
       { w: 1, type: 'item', msg: '拾到了裂隙中的醒神草和药草', item: 'revives', n: 1, extra: { item: 'herbs', n: 2 } },
       { w: 2, type: 'heal_active_full', msg: '幻境守护者祝福了出战宠物' },
       { w: 1, type: 'revive_one', msg: '幻境低语唤醒了一只倒下的宠物' },
+      { w: 1, type: 'item', msg: '幻境深处发现了全恢复草！', item: 'herb_full', n: 1 },
+      { w: 1, type: 'item', msg: '虚空裂隙中飘落满血醒神草！', item: 'revive_full', n: 1 },
     ]
   },
 }
