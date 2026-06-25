@@ -22,6 +22,7 @@ pub fn new_game() -> Unit {
   _result.leveled_up = false
   _result.dodged = false
   _state.skill_cooldown = 0
+  _state.enemy_action_count = 0
 }
 
 ///|

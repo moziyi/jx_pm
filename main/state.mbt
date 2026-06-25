@@ -79,6 +79,7 @@ priv struct GameState {
   mut active : Int
   mut stored : Array[CapturedEntry]
   mut skill_cooldown : Int
+  mut enemy_action_count : Int
 }
 
 // 全局实例
@@ -101,6 +102,7 @@ let _state : GameState = {
   active: 0,
   stored: [],
   skill_cooldown: 0,
+  enemy_action_count: 0,
 }
 
 ///|

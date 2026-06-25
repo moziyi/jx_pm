@@ -58,7 +58,7 @@ fn roll_stat(base : Int) -> Int {
 
 ///|
 fn calc_def_reduce(raw : Int, def : Int) -> Int {
-  let reduce = (def.to_double() * 0.4).to_int()
+  let reduce = (def.to_double() * 0.5).to_int()
   let dmg = raw - reduce
   if dmg < 1 {
     1
@@ -71,6 +71,13 @@ fn calc_def_reduce(raw : Int, def : Int) -> Int {
 fn roll_dodge(agi : Int) -> Bool {
   let rate = agi.to_double() * 0.005
   let clamped = if rate > 0.2 { 0.2 } else { rate }
+  math_random() < clamped
+}
+
+///|
+fn roll_crit(agi : Int) -> Bool {
+  let rate = agi.to_double() * 0.005
+  let clamped = if rate > 0.10 { 0.10 } else { rate }
   math_random() < clamped
 }
 
@@ -106,21 +113,73 @@ fn enemy_attack_full() -> Int {
   if raw == 0 {
     return 0
   }
-  let dmg = calc_def_reduce(raw, pet.def)
+  let crit = roll_crit(_state.enemy_agi)
+  let dmg_raw = if crit { (raw.to_double() * 1.5).to_int() } else { raw }
+  let dmg = calc_def_reduce(dmg_raw, pet.def)
   _state.player_hp = clamp_min(_state.player_hp - dmg, 0)
+  if crit {
+    _result.message = "\{_state.enemy_name} 暴击！造成了 \{dmg} 点伤害。"
+  }
   dmg
+}
+
+///|
+fn enemy_elemental_skill() -> Int {
+  let pet = _state.owned[_state.active]
+  if roll_dodge(pet.agi) {
+    _result.dodged = true
+    return 0
+  }
+  _result.dodged = false
+  let base = (_state.enemy_atk.to_double() * 1.3).to_int()
+  let raw = roll_damage(base, 6)
+  let eff = battle_effect(_state.enemy_element, pet.element)
+  match eff {
+    Generate => {
+      let heal = (raw.to_double() * 0.5).to_int()
+      _state.player_hp = if _state.player_hp + heal > pet.hp { pet.hp } else { _state.player_hp + heal }
+      _result.message = "\{_state.enemy_name} 的元素技为你恢复了 \{heal} 点 HP…"
+      heal
+    }
+    _ => {
+      let mult = effect_to_mult(eff)
+      let crit = roll_crit(_state.enemy_agi)
+      let dmg = (raw.to_double() * mult).to_int()
+      let final_dmg = if crit { (dmg.to_double() * 1.5).to_int() } else { dmg }
+      let d = if final_dmg < 1 { 1 } else { final_dmg }
+      _state.player_hp = clamp_min(_state.player_hp - d, 0)
+      if crit {
+        _result.message = "\{_state.enemy_name} 的元素技暴击！造成了 \{d} 点伤害。"
+      }
+      d
+    }
+  }
+}
+
+// ── 敌方行动决策 ──────────────────────────────────────────────────────────
+
+///|
+fn enemy_action() -> Int {
+  _state.enemy_action_count = _state.enemy_action_count + 1
+  let hp_ratio = _state.enemy_hp.to_double() / _state.enemy_max_hp.to_double()
+  let interval = if hp_ratio > 0.50 { 3 } else { 2 }
+  if _state.enemy_action_count % interval == 0 {
+    enemy_elemental_skill()
+  } else {
+    enemy_attack_full()
+  }
 }
 
 // ── 敌方回合判定 ───────────────────────────────────────────────────────────
 
 ///|
 fn enemy_turn() -> Int {
-  enemy_attack_full()
+  enemy_action()
 }
 
 ///|
 fn enemy_counter_attack() -> Int {
-  enemy_attack_full()
+  enemy_action()
 }
 
 // ── 公开行动 ──────────────────────────────────────────────────────────────
@@ -133,42 +192,49 @@ pub fn player_attack() -> Unit {
   _result.dodged = false
   let pet = _state.owned[_state.active]
   if player_goes_first() {
-    let dealt = roll_damage(_state.player_atk, 6)
+    let raw = roll_damage(_state.player_atk, 6)
+    let crit = roll_crit(pet.agi)
+    let dealt = if crit { (raw.to_double() * 1.5).to_int() } else { raw }
     _state.enemy_hp = clamp_min(_state.enemy_hp - dealt, 0)
     let enemy_defeated = _state.enemy_hp <= 0
     let taken = if enemy_defeated { 0 } else { enemy_counter_attack() }
     let player_defeated = _state.player_hp <= 0
     set_result(dealt, taken, false, 0.0, enemy_defeated, player_defeated)
-    _result.message = if enemy_defeated {
+    _result.message = if crit && enemy_defeated {
+      "暴击！造成了 \{dealt} 点伤害。\{_state.enemy_name} 被击败了！"
+    } else if enemy_defeated {
       "你造成了 \{dealt} 点伤害。\{_state.enemy_name} 被击败了！"
     } else if _result.dodged {
-      "你造成了 \{dealt} 点伤害。\{_state.enemy_name} 的攻击被闪避了！"
+      (if crit { "暴击！造成了 \{dealt} 点伤害。" } else { "你造成了 \{dealt} 点伤害。" }) + "\{_state.enemy_name} 的攻击被闪避了！"
     } else if player_defeated {
-      "你造成了 \{dealt} 点伤害，但受到 \{taken} 点反击。\{pet.name} 倒下了…"
+      (if crit { "暴击！造成了 \{dealt} 点伤害，" } else { "你造成了 \{dealt} 点伤害，" }) + "但受到 \{taken} 点反击。\{pet.name} 倒下了…"
     } else {
-      "你造成了 \{dealt} 点伤害，受到 \{taken} 点反击。敌人还剩 \{_state.enemy_hp} HP。"
+      (if crit { "暴击！造成了 \{dealt} 点伤害，" } else { "你造成了 \{dealt} 点伤害，" }) + "受到 \{taken} 点反击。敌人还剩 \{_state.enemy_hp} HP。"
     }
     dec_cooldown()
   } else {
     let taken = enemy_turn()
     let player_defeated = _state.player_hp <= 0
+    let mut crit = false
     let dealt = if player_defeated {
       0
     } else {
-      let d = roll_damage(_state.player_atk, 6)
+      let raw = roll_damage(_state.player_atk, 6)
+      crit = roll_crit(pet.agi)
+      let d = if crit { (raw.to_double() * 1.5).to_int() } else { raw }
       _state.enemy_hp = clamp_min(_state.enemy_hp - d, 0)
       d
     }
     let enemy_defeated = _state.enemy_hp <= 0
     set_result(dealt, taken, false, 0.0, enemy_defeated, player_defeated)
     _result.message = if _result.dodged {
-      "闪避了\{_state.enemy_name} 的攻击！你造成 \{dealt} 点伤害。"
+      "闪避了\{_state.enemy_name} 的攻击！" + (if dealt > 0 && crit { "暴击！你" } else { "你" }) + "造成 \{dealt} 点伤害。"
     } else if player_defeated {
       "\{_state.enemy_name} 先发制人造成 \{taken} 点伤害。\{pet.name} 倒下了…"
     } else if enemy_defeated {
-      "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。你反击 \{dealt} 点，击败了它！"
+      "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。" + (if crit { "暴击反击 \{dealt} 点，击败了它！" } else { "你反击 \{dealt} 点，击败了它！" })
     } else {
-      "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。你反击 \{dealt} 点。敌人还剩 \{_state.enemy_hp} HP。"
+      "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。" + (if crit { "暴击反击 \{dealt} 点。" } else { "你反击 \{dealt} 点。" }) + "敌人还剩 \{_state.enemy_hp} HP。"
     }
     dec_cooldown()
   }
@@ -207,17 +273,21 @@ pub fn elemental_skill() -> Unit {
       _ => {
         let mult = effect_to_mult(eff)
         let dmg = (raw.to_double() * mult).to_int()
-        let d = if dmg < 1 { 1 } else { dmg }
+        let crit = roll_crit(pet.agi)
+        let final_dmg = if crit { (dmg.to_double() * 1.5).to_int() } else { dmg }
+        let d = if final_dmg < 1 { 1 } else { final_dmg }
         _state.enemy_hp = clamp_min(_state.enemy_hp - d, 0)
         let ed = _state.enemy_hp <= 0
         let taken = if ed { 0 } else { enemy_counter_attack() }
         set_result(d, taken, false, 0.0, ed, _state.player_hp <= 0)
-        _result.message = if ed {
+        _result.message = if crit && ed {
+          "元素技暴击！造成 \{d} 点伤害！\{_state.enemy_name} 被击败了！"
+        } else if ed {
           "元素技造成 \{d} 点伤害！\{_state.enemy_name} 被击败了！"
         } else if _result.player_defeated {
-          "元素技造成 \{d} 点伤害，但受到 \{taken} 点反击。\{pet.name} 倒下了…"
+          (if crit { "元素技暴击造成 \{d} 点伤害，" } else { "元素技造成 \{d} 点伤害，" }) + "但受到 \{taken} 点反击。\{pet.name} 倒下了…"
         } else {
-          "元素技造成 \{d} 点伤害，受到 \{taken} 点反击。敌人还剩 \{_state.enemy_hp} HP。"
+          (if crit { "元素技暴击造成 \{d} 点伤害，" } else { "元素技造成 \{d} 点伤害，" }) + "受到 \{taken} 点反击。敌人还剩 \{_state.enemy_hp} HP。"
         }
       }
     }
@@ -249,12 +319,18 @@ pub fn elemental_skill() -> Unit {
         _ => {
           let mult = effect_to_mult(eff)
           let dmg = (raw.to_double() * mult).to_int()
-          let d = if dmg < 1 { 1 } else { dmg }
+          let crit = roll_crit(pet.agi)
+          let final_dmg = if crit { (dmg.to_double() * 1.5).to_int() } else { dmg }
+          let d = if final_dmg < 1 { 1 } else { final_dmg }
           _state.enemy_hp = clamp_min(_state.enemy_hp - d, 0)
           let ed = _state.enemy_hp <= 0
           set_result(d, taken, false, 0.0, ed, false)
-          _result.message = if ed {
+          _result.message = if crit && ed {
+            "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。元素技暴击反击 \{d} 点，击败了它！"
+          } else if ed {
             "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。元素技反击 \{d} 点，击败了它！"
+          } else if crit {
+            "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。元素技暴击反击 \{d} 点。敌人还剩 \{_state.enemy_hp} HP。"
           } else {
             "\{_state.enemy_name} 先攻造成 \{taken} 点伤害。元素技反击 \{d} 点。敌人还剩 \{_state.enemy_hp} HP。"
           }
