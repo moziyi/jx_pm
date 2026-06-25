@@ -189,7 +189,7 @@ pub fn exp_to_next(lv : Int) -> Int {
   if lv >= max_level {
     0
   } else {
-    12 + lv * lv * 8
+    20 + lv * lv * 5
   }
 }
 
