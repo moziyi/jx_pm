@@ -4,12 +4,16 @@
 pub fn export_save() -> String {
   let owned_count = _state.owned.length()
   let stored_count = _state.stored.length()
-  let lines = "8\n"
+  let lines = "9\n"
   let mut data = _state.active.to_string() + "\n"
   data = data + _inventory.herbs.to_string() + "\n"
   data = data + _inventory.revives.to_string() + "\n"
   data = data + _inventory.charms.to_string() + "\n"
   data = data + _inventory.great_charms.to_string() + "\n"
+  data = data + _inventory.herb50.to_string() + "\n"
+  data = data + _inventory.herb_half.to_string() + "\n"
+  data = data + _inventory.herb_full.to_string() + "\n"
+  data = data + _inventory.revive_full.to_string() + "\n"
   data = data + owned_count.to_string() + "\n"
   for i = 0; i < owned_count; i = i + 1 {
     data = data + _state.owned[i].id.to_string() + "\n"
