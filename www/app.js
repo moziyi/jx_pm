@@ -34,7 +34,7 @@ import { loadGame, saveGame } from "./storage.js";
   const battleMod = createBattle($, exports, ds, petsMod, ui, pokedexMod);
 
   // Items
-  const itemsMod = createItems($, exports, null, null); // will wire after context
+  const itemsMod = createItems($, exports, syncFromMoonBit);
 
   // Map
   const mapMod = createMap($, exports, ds, battleMod, ui, pokedexMod);
@@ -51,13 +51,6 @@ import { loadGame, saveGame } from "./storage.js";
     trySpawnSpecial: () => mapMod.trySpawnSpecial(ctx),
     saveGame: (pets, stored) => saveGame(pets, stored, exports),
   };
-
-  // Wire items with context
-  itemsMod.updateCounts = () => {
-    const { updateCounts } = createItems($, exports, syncFromMoonBit, null);
-    const fn = updateCounts;
-    return () => fn(btnUseHerb, btnUseRevive, btnUseHerb50, btnUseHerbHalf, btnUseHerbFull, btnUseReviveFull, btnUseCharm);
-  }();
 
   // syncFromMoonBit
   function syncFromMoonBit() {

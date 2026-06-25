@@ -1,8 +1,8 @@
 // items.js — 道具计数 + 地图道具按钮
 
-export function createItems($, exports, syncFromMoonBit, updateCountsFn) {
+export function createItems($, exports, syncFromMoonBit) {
 
-  function updateCounts(btnUseHerb, btnUseRevive, btnUseHerb50, btnUseHerbHalf, btnUseHerbFull, btnUseReviveFull, btnUseCharm) {
+  function updateCounts() {
     const h = exports.get_herbs(),
       r = exports.get_revives(),
       c = exports.get_charms(),
@@ -19,6 +19,13 @@ export function createItems($, exports, syncFromMoonBit, updateCountsFn) {
     set("herb-full-count", hf); set("map-herb-full-count", hf);
     set("revive-full-count", rf); set("map-revive-full-count", rf);
     set("charm-count", c); set("great-charm-count", gc);
+    const btnUseHerb = $("btn-herb"),
+      btnUseRevive = $("btn-revive"),
+      btnUseHerb50 = $("btn-herb50"),
+      btnUseHerbHalf = $("btn-herb-half"),
+      btnUseHerbFull = $("btn-herb-full"),
+      btnUseReviveFull = $("btn-revive-full"),
+      btnUseCharm = $("btn-charm");
     if (btnUseHerb) btnUseHerb.disabled = h <= 0;
     if (btnUseRevive) btnUseRevive.disabled = r <= 0;
     if (btnUseHerb50) btnUseHerb50.disabled = h50 <= 0;
