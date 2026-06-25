@@ -1,6 +1,7 @@
 // storage.js — 存档读写
 
-const SAVE_KEY = 'phantom_forest_v3'
+const SAVE_KEY = 'phantom_forest_v8'
+const OLD_SAVE_KEY = 'phantom_forest_v3'
 
 export function checksum(s) {
   let sum = 0
@@ -37,8 +38,12 @@ function parsePet(lines, i, ver) {
 
 export function loadGame() {
   try {
-    const raw = localStorage.getItem(SAVE_KEY)
-    if (!raw) return null
+    let raw = localStorage.getItem(SAVE_KEY)
+    if (!raw) {
+      // 降级读取旧版本 key
+      raw = localStorage.getItem(OLD_SAVE_KEY)
+      if (!raw) return null
+    }
     const lines = raw.split('\n')
     const ver = parseInt(lines[0])
     if (ver < 3) return null

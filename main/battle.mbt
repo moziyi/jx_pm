@@ -365,7 +365,6 @@ pub fn switch_pet(idx : Int) -> Bool {
     set_result(0, taken, false, 0.0, false, player_defeated)
     _result.message = "换上了 \{_state.owned[idx].name}！受到 \{taken} 点反击。"
   } else {
-    let old_pet = _state.owned[_state.active]
     _state.owned[_state.active].cur_hp = _state.player_hp
     _state.active = idx
     _state.player_hp = _state.owned[idx].cur_hp
@@ -378,7 +377,7 @@ pub fn switch_pet(idx : Int) -> Bool {
       _result.message = if _result.dodged {
         "闪避了\{_state.enemy_name} 的攻击！但切换被打断了…"
       } else {
-        "\{_state.enemy_name} 先手造成 \{taken} 点伤害！\{old_pet.name} 倒下了…"
+        "\{_state.enemy_name} 先手造成 \{taken} 点伤害！\{_state.owned[_state.active].name} 倒下了…"
       }
       return true
     }
@@ -386,7 +385,7 @@ pub fn switch_pet(idx : Int) -> Bool {
     _result.message = if _result.dodged {
       "闪避了\{_state.enemy_name} 的攻击！换上了 \{_state.owned[idx].name}。"
     } else {
-      "\{_state.enemy_name} 先手攻击 \{old_pet.name} 造成 \{taken} 点伤害。换上了 \{_state.owned[idx].name}。"
+      "\{_state.enemy_name} 先手造成 \{taken} 点伤害。换上了 \{_state.owned[idx].name}。"
     }
   }
   dec_cooldown()
