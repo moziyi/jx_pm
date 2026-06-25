@@ -387,3 +387,101 @@ body {
 .starter-el { font-size:11px; color:#a78bfa; }
 .starter-desc { font-size:10px; color:#888; }
 .starter-stats { font-size:10px; color:#666; }
+
+/* ═══════════════════════════════════════════════════════════════
+   战斗特效
+   ═══════════════════════════════════════════════════════════════ */
+
+/* 攻击动作 */
+@keyframes player-attack {
+  0%,100% { transform: translateX(0); }
+  40% { transform: translateX(24px); }
+}
+@keyframes enemy-attack {
+  0%,100% { transform: translateX(0); }
+  40% { transform: translateX(-24px); }
+}
+.attacking.player-av { animation: player-attack 0.25s ease; }
+.attacking.enemy-av { animation: enemy-attack 0.25s ease; }
+
+/* 受击抖动 */
+@keyframes hit-shake {
+  0%,100% { transform: rotate(0); }
+  25% { transform: rotate(4deg); }
+  75% { transform: rotate(-4deg); }
+}
+.hit-shake { animation: hit-shake 0.3s ease; }
+
+/* 闪避 */
+@keyframes dodge-pop {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  50% { transform: translateY(-18px) scale(1.1); opacity: 0.5; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.dodge-pop { animation: dodge-pop 0.4s ease; }
+
+/* 暴击屏幕闪红 */
+@keyframes crit-flash {
+  0% { box-shadow: inset 0 0 80px rgba(255,40,40,0.3); }
+  50% { box-shadow: inset 0 0 120px rgba(255,40,40,0.5); }
+  100% { box-shadow: inset 0 0 0px rgba(255,40,40,0); }
+}
+.crit-flash { animation: crit-flash 0.5s ease-out; }
+
+/* 击败消失 */
+@keyframes defeat-fade {
+  to { transform: scale(0.3) rotate(15deg); opacity: 0; }
+}
+.defeat-fade { animation: defeat-fade 0.5s ease-in forwards; }
+
+/* 升级光效 */
+@keyframes level-glow {
+  0%,100% { filter: drop-shadow(0 0 6px gold); }
+  50% { filter: drop-shadow(0 0 20px gold) brightness(1.2); }
+}
+.level-glow { animation: level-glow 0.8s ease 3; }
+
+/* 元素技蓄力 */
+@keyframes charge-glow {
+  0%,100% { filter: drop-shadow(0 0 4px currentColor); }
+  50% { filter: drop-shadow(0 0 16px currentColor) brightness(1.15); }
+}
+.charge-glow { animation: charge-glow 0.4s ease; }
+
+/* 伤害飘字增强 */
+.dmg-float {
+  position: absolute; left: 50%; top: -10px; transform: translateX(-50%);
+  font-weight: bold; font-size: 22px; pointer-events: none; z-index: 20;
+  animation: float-up 0.9s ease-out forwards;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+@keyframes float-up {
+  to { transform: translateX(-50%) translateY(-44px); opacity: 0; }
+}
+.dmg-float.heal { color: #2ecc71; }
+.dmg-float.crit { color: #ffd700; font-size: 30px; text-shadow: 0 0 12px rgba(255,215,0,0.7); }
+
+/* MISS 文字 */
+.miss-float {
+  position: absolute; left: 50%; top: 0; transform: translateX(-50%);
+  color: #fff; font-weight: bold; font-size: 18px; pointer-events: none; z-index: 20;
+  animation: float-up 0.6s ease-out forwards;
+  text-shadow: 0 0 8px rgba(255,255,255,0.5);
+}
+
+/* 粒子 */
+.particle {
+  position: fixed; pointer-events: none; z-index: 30; font-size: 14px;
+  animation: particle-burst 0.7s ease-out forwards;
+}
+@keyframes particle-burst {
+  to { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; }
+}
+
+/* 捕捉成功闪光 */
+@keyframes catch-flash {
+  0% { filter: brightness(1); }
+  30% { filter: brightness(2.5) saturate(0); }
+  100% { filter: brightness(1); }
+}
+.catch-flash { animation: catch-flash 0.6s ease; }
