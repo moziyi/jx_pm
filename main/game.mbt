@@ -159,8 +159,6 @@ pub fn reset_next_id(v : Int) -> Unit {
 
 ///|
 pub fn add_pet(
-  name : String,
-  emoji : String,
   hp : Int,
   atk : Int,
   def : Int,
@@ -170,14 +168,12 @@ pub fn add_pet(
   cur_hp : Int,
   element : Int,
 ) -> Int {
-  add_pet_with_id(next_id(), name, emoji, hp, atk, def, agi, lv, exp, cur_hp, element)
+  add_pet_with_id(next_id(), hp, atk, def, agi, lv, exp, cur_hp, element)
 }
 
 /// 带指定 id 的 add_pet（存档恢复用）
 pub fn add_pet_with_id(
   id : Int,
-  name : String,
-  emoji : String,
   hp : Int,
   atk : Int,
   def : Int,
@@ -190,8 +186,8 @@ pub fn add_pet_with_id(
   let idx = _state.owned.length()
   _state.owned.push({
     id,
-    name,
-    emoji,
+    name: "未知",
+    emoji: "❓",
     hp,
     atk,
     def,

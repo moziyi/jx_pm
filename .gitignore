@@ -5,3 +5,10 @@ _build
 .DS_Store
 .vscode
 .claude
+
+# Vite / Bun
+node_modules/
+bun.lock
+
+# MoonBit WASM 副本
+www/main.wasm

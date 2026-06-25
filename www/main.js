@@ -13,7 +13,7 @@ import {
 import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
 
 (async () => {
-  const wasmUrl = "/_build/wasm/release/build/main/main.wasm";
+  const wasmUrl = "./main.wasm";
   let exports,
     mem,
     pets = [],
@@ -87,8 +87,6 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
     for (const p of allPets)
       exports.add_pet_with_id(
         p.id ?? 0,
-        p.n,
-        p.e,
         p.hp,
         p.atk,
         p.def ?? 0,
@@ -147,12 +145,15 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
       btn.addEventListener("click", () => {
         const s = STARTERS[parseInt(btn.dataset.idx)];
         exports.clear_pets();
-        exports.add_pet(s.n, s.e, s.hp, s.atk, s.def, s.agi, 1, 0, s.hp, s.el);
+        exports.add_pet(s.hp, s.atk, s.def, s.agi, 1, 0, s.hp, s.el);
         exports.set_active(0);
         markCaught(s.n);
         panel.style.display = "none";
         $("map-view").removeAttribute("hidden");
         syncFromMoonBit();
+        // add_pet 创建时名为"未知"，此处修正
+        pets[0].n = s.n;
+        pets[0].e = s.e;
         saveGame(pets, storedPets, exports);
         renderPetList();
       });
