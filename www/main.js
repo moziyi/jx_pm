@@ -241,20 +241,104 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
   const petSwitchPanel = $("pet-switch");
 
   // ── 5. 动画 ────────────────────────────────────────────────────────────────
-  function showDamageFloat(el, value, isHeal) {
+  const EL_COLORS = ['#d4af37', '#4caf50', '#b8956a', '#4da6d9', '#e85d3a'];
+
+  function showDamageFloat(el, value, isHeal, crit) {
     if (!el) return;
     const span = document.createElement("span");
-    span.className = "dmg-float" + (isHeal ? " heal" : "");
-    span.textContent = (isHeal ? "+" : "") + value;
+    span.className = "dmg-float" + (isHeal ? " heal" : "") + (crit ? " crit" : "");
+    span.textContent = (crit ? "💥" : "") + (isHeal ? "+" : "") + value;
     el.appendChild(span);
     setTimeout(() => span.remove(), 900);
   }
 
-  function shakeScreen() {
+  function showMissText(el) {
+    if (!el) return;
+    const span = document.createElement("span");
+    span.className = "miss-float";
+    span.textContent = "MISS";
+    el.appendChild(span);
+    setTimeout(() => span.remove(), 600);
+  }
+
+  function playAttackAnim(el, cls) {
+    if (!el) return;
+    el.classList.add("attacking", cls);
+    setTimeout(() => { el.classList.remove("attacking", cls); }, 250);
+  }
+
+  function playHitAnim(el) {
+    if (!el) return;
+    el.classList.add("hit-shake");
+    setTimeout(() => el.classList.remove("hit-shake"), 300);
+  }
+
+  function playDodgeAnim(el) {
+    if (!el) return;
+    el.classList.add("dodge-pop");
+    setTimeout(() => el.classList.remove("dodge-pop"), 400);
+  }
+
+  function playDefeatAnim(el) {
+    if (!el) return;
+    el.classList.add("defeat-fade");
+    setTimeout(() => el.classList.remove("defeat-fade"), 500);
+  }
+
+  function screenCritFlash() {
+    const view = $("battle-view");
+    if (!view) return;
+    view.classList.add("crit-flash");
+    setTimeout(() => view.classList.remove("crit-flash"), 500);
+  }
+
+  function playLevelGlow(el) {
+    if (!el) return;
+    const pet = el.closest ? el : document.querySelector(el);
+    if (!pet) return;
+    pet.classList.add("level-glow");
+    setTimeout(() => pet.classList.remove("level-glow"), 2400);
+  }
+
+  function playChargeGlow(el) {
+    if (!el) return;
+    el.classList.add("charge-glow");
+    setTimeout(() => el.classList.remove("charge-glow"), 400);
+  }
+
+  function spawnParticles(el, color, count) {
+    if (!el) return;
+    count = count || 6;
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    for (let i = 0; i < count; i++) {
+      const p = document.createElement("span");
+      p.className = "particle";
+      p.style.cssText = `
+        left:${cx}px; top:${cy}px; color:${color};
+        --dx:${(Math.random()-0.5)*120}px;
+        --dy:${(Math.random()-0.5)*100 - 30}px;
+        font-size:${10 + Math.random()*10}px;
+      `;
+      p.textContent = ['✦','✧','•','·'][Math.floor(Math.random()*4)];
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 700);
+    }
+  }
+
+  function screenShake() {
     const view = $("battle-view");
     if (!view) return;
     view.classList.add("shaking");
     setTimeout(() => view.classList.remove("shaking"), 350);
+  }
+
+  function playCatchFlash() {
+    const enemy = $("enemy-avatar");
+    if (!enemy) return;
+    enemy.classList.add("catch-flash");
+    setTimeout(() => enemy.classList.remove("catch-flash"), 600);
   }
 
   function showEventPopup(msg) {
@@ -772,22 +856,59 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
   function handleResult() {
     const dealt = exports.get_last_damage_dealt();
     const taken = exports.get_last_damage_taken();
+    const msgText = ds(exports.get_last_message());
+    const isCrit = msgText.includes("暴击");
+    const isDodge = exports.get_last_dodged ? exports.get_last_dodged() : msgText.includes("闪避");
+    const isSkill = msgText.includes("元素技");
     syncBattleUI();
+
+    // 攻击动作
     if (dealt > 0) {
-      showDamageFloat($("enemy-avatar"), dealt, false);
-      shakeScreen();
+      playAttackAnim($("player-avatar"), "player-av");
+      if (isSkill) playChargeGlow($("player-avatar"));
     }
+
+    // 敌人伤害
+    if (dealt > 0) {
+      showDamageFloat($("enemy-avatar"), dealt, false, isCrit);
+      playHitAnim($("enemy-avatar"));
+      if (isSkill) spawnParticles($("enemy-avatar"), EL_COLORS[exports.get_player_element()] || "#fff", 6);
+    }
+
+    // 暴击
+    if (isCrit) {
+      screenCritFlash();
+      screenShake();
+    } else if (dealt > 0 && !isCrit) {
+      screenShake();
+    }
+
+    // 玩家受伤
     if (taken > 0 && !exports.get_last_catch_success()) {
-      showDamageFloat($("player-avatar"), taken, false);
+      if (isDodge) {
+        showMissText($("player-avatar"));
+        playDodgeAnim($("player-avatar"));
+      } else {
+        showDamageFloat($("player-avatar"), taken, false, false);
+        playHitAnim($("player-avatar"));
+        playAttackAnim($("enemy-avatar"), "enemy-av");
+      }
     }
-    setLog(ds(exports.get_last_message()));
+
+    setLog(msgText);
     const won = exports.get_last_enemy_defeated(),
       lost = exports.get_last_player_defeated(),
       caught = exports.get_last_catch_success();
+
     if (caught || won) {
       if (caught) {
         syncFromMoonBit();
         markCaught(ds(exports.get_enemy_name()));
+        playCatchFlash();
+        spawnParticles($("enemy-avatar"), "#ffd700", 10);
+      }
+      if (won) {
+        playDefeatAnim($("enemy-avatar"));
       }
       const max = exports.get_max_pets ? exports.get_max_pets() : 5;
       const maxStored = exports.get_max_stored ? exports.get_max_stored() : 10;
@@ -795,7 +916,7 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
         if (storedPets.length < maxStored) {
           exports.store_pet(pets.length - 1);
           syncFromMoonBit();
-          setLog(ds(exports.get_last_message()) + ` 队伍已满，新宠物已自动寄存。`);
+          setLog(msgText + ` 队伍已满，新宠物已自动寄存。`);
         } else {
           showReleasePicker(() => {
             exitBattle();
@@ -876,7 +997,12 @@ import { checksum, getUUID, loadGame, saveGame } from "./storage.js";
     // Level-up notification
     if (exports.get_last_leveled_up && exports.get_last_leveled_up()) {
       const pet = pets[exports.get_active()];
-      if (pet) showEventPopup(`🎉 ${pet.e} ${pet.n} 升级到 Lv${pet.lv}！`);
+      if (pet) {
+        showEventPopup(`🎉 ${pet.e} ${pet.n} 升级到 Lv${pet.lv}！`);
+        // 找到对应宠物标签加光效
+        const tag = document.querySelector(`.captured-tag[data-idx="${exports.get_active()}"]:not([data-stored="1"])`);
+        if (tag) playLevelGlow(tag);
+      }
     }
     petSwitchPanel.hidden = true;
     const bi = $("battle-items");
