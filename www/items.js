@@ -1,12 +1,12 @@
 // items.js — 道具菜单：弹窗/tab/目标选择
 
 const ITEMS = [
-  { key:'herb', emoji:'🧪', name:'药草', cat:'heal', desc:'回复 20 HP', use:(e)=>e.use_herb() },
-  { key:'herb50', emoji:'💊', name:'强效药草', cat:'heal', desc:'回复 50 HP', use:(e)=>e.use_herb50() },
-  { key:'herb_half', emoji:'🌸', name:'半恢复草', cat:'heal', desc:'回复 50% Max HP', use:(e)=>e.use_herb_half() },
-  { key:'herb_full', emoji:'🌟', name:'全恢复草', cat:'heal', desc:'回复全部 HP', use:(e)=>e.use_herb_full() },
-  { key:'revive', emoji:'🌿', name:'醒神草', cat:'heal', desc:'复苏，回复 50% HP', use:(e,idx)=>e.use_revive(idx), isRevive:true },
-  { key:'revive_full', emoji:'✨', name:'满血醒神草', cat:'heal', desc:'复苏，回复全部 HP', use:(e,idx)=>e.use_revive_full(idx), isRevive:true },
+  { key:'herb', emoji:'🧪', name:'药草', cat:'heal', desc:'回复 20 HP', use:(e,idx)=>e.use_herb_on(idx) },
+  { key:'herb50', emoji:'💊', name:'强效药草', cat:'heal', desc:'回复 50 HP', use:(e,idx)=>e.use_herb50_on(idx) },
+  { key:'herb_half', emoji:'🌸', name:'半恢复草', cat:'heal', desc:'回复 50% Max HP', use:(e,idx)=>e.use_herb_half_on(idx) },
+  { key:'herb_full', emoji:'🌟', name:'全恢复草', cat:'heal', desc:'回复全部 HP', use:(e,idx)=>e.use_herb_full_on(idx) },
+  { key:'revive', emoji:'🌿', name:'醒神草', cat:'heal', desc:'复苏，回复 50% HP', use:(e,idx)=>e.use_revive(idx), tag:'revive' },
+  { key:'revive_full', emoji:'✨', name:'满血醒神草', cat:'heal', desc:'复苏，回复全部 HP', use:(e,idx)=>e.use_revive_full(idx), tag:'revive' },
   { key:'charm', emoji:'🔮', name:'幻兽符', cat:'fight', desc:'捕捉率 +15%', use:(e)=>e.use_charm(), battleOnly:true },
   { key:'great_charm', emoji:'⭐', name:'高级幻兽符', cat:'fight', desc:'捕捉率 +30%', use:(e)=>e.use_great_charm(), battleOnly:true },
 ];
@@ -82,7 +82,8 @@ export function createItems($, exports, ds, petsMod, syncFromMoonBit) {
     const pets = petsMod.getPets();
     targetPick.hidden = false;
     popup.hidden = true;
-    const isRevive = item.isRevive;
+    const isRevive = item.tag === 'revive';
+    const isHeal = item.cat === 'heal' && !isRevive;
     targetList.innerHTML = pets.map((p, idx) => {
       const dead = p.cur_hp <= 0;
       const full = p.cur_hp >= p.hp;
@@ -90,8 +91,9 @@ export function createItems($, exports, ds, petsMod, syncFromMoonBit) {
       const hpColor = hpPct > 50 ? 'green' : hpPct > 25 ? 'yellow' : 'red';
       let selectable = true, reason = '';
       if (isRevive && !dead) { selectable = false; reason = '存活中'; }
-      else if (!isRevive && dead) { selectable = false; reason = '已阵亡'; }
-      else if (!isRevive && full) { selectable = false; reason = 'HP已满'; }
+      else if (isRevive && dead) { selectable = true; }
+      else if (isHeal && dead) { selectable = false; reason = '已阵亡'; }
+      else if (isHeal && full) { selectable = false; reason = 'HP已满'; }
       return `<div class="target-card${selectable?'':' disabled'}" data-idx="${idx}"${selectable?'':' title="'+reason+'"'}>
         <span class="target-card-icon">${p.e}</span>
         <div class="target-card-info">

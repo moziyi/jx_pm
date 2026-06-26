@@ -153,6 +153,115 @@ pub fn use_revive(idx : Int) -> Bool {
 }
 
 ///|
+pub fn use_herb_on(idx : Int) -> Bool {
+  if idx < 0 || idx >= _state.owned.length() { return false }
+  if _inventory.herbs <= 0 { return false }
+  let pet = _state.owned[idx]
+  if pet.cur_hp <= 0 { return false }
+  if pet.cur_hp >= pet.hp { return false }
+  _result.message1 = ""
+  _result.message2 = ""
+  _result.dodged = false
+  _inventory.herbs = _inventory.herbs - 1
+  let heal = if pet.cur_hp + 20 > pet.hp { pet.hp - pet.cur_hp } else { 20 }
+  pet.cur_hp = pet.cur_hp + heal
+  if idx == _state.active { _state.player_hp = pet.cur_hp }
+  _result.message1 = "使用了药草，\{pet.name} 恢复了 \{heal} 点 HP。"
+  if _state.enemy_hp > 0 {
+    let taken = enemy_action()
+    let player_defeated = _state.player_hp <= 0
+    set_result(0, taken, false, 0.0, false, player_defeated)
+    _result.message2 = if _result.dodged { "\{_state.enemy_name} 的攻击未命中！"
+    } else if player_defeated { "\{_state.enemy_name} 造成 \{taken} 点伤害！\{_state.owned[_state.active].name} 倒下了…"
+    } else { "\{_state.enemy_name} 造成 \{taken} 点伤害。" }
+  }
+  dec_cooldown()
+  return true
+}
+
+///|
+pub fn use_herb50_on(idx : Int) -> Bool {
+  if idx < 0 || idx >= _state.owned.length() { return false }
+  if _inventory.herb50 <= 0 { return false }
+  let pet = _state.owned[idx]
+  if pet.cur_hp <= 0 { return false }
+  if pet.cur_hp >= pet.hp { return false }
+  _result.message1 = ""
+  _result.message2 = ""
+  _result.dodged = false
+  _inventory.herb50 = _inventory.herb50 - 1
+  let heal = if pet.cur_hp + 50 > pet.hp { pet.hp - pet.cur_hp } else { 50 }
+  pet.cur_hp = pet.cur_hp + heal
+  if idx == _state.active { _state.player_hp = pet.cur_hp }
+  _result.message1 = "使用了强效药草，\{pet.name} 恢复了 \{heal} 点 HP。"
+  if _state.enemy_hp > 0 {
+    let taken = enemy_action()
+    let player_defeated = _state.player_hp <= 0
+    set_result(0, taken, false, 0.0, false, player_defeated)
+    _result.message2 = if _result.dodged { "\{_state.enemy_name} 的攻击未命中！"
+    } else if player_defeated { "\{_state.enemy_name} 造成 \{taken} 点伤害！\{_state.owned[_state.active].name} 倒下了…"
+    } else { "\{_state.enemy_name} 造成 \{taken} 点伤害。" }
+  }
+  dec_cooldown()
+  return true
+}
+
+///|
+pub fn use_herb_half_on(idx : Int) -> Bool {
+  if idx < 0 || idx >= _state.owned.length() { return false }
+  if _inventory.herb_half <= 0 { return false }
+  let pet = _state.owned[idx]
+  if pet.cur_hp <= 0 { return false }
+  if pet.cur_hp >= pet.hp { return false }
+  _result.message1 = ""
+  _result.message2 = ""
+  _result.dodged = false
+  _inventory.herb_half = _inventory.herb_half - 1
+  let half = pet.hp / 2
+  let heal = if pet.cur_hp + half > pet.hp { pet.hp - pet.cur_hp } else { half }
+  pet.cur_hp = pet.cur_hp + heal
+  if idx == _state.active { _state.player_hp = pet.cur_hp }
+  _result.message1 = "使用了半恢复草，\{pet.name} 恢复了 \{heal} 点 HP。"
+  if _state.enemy_hp > 0 {
+    let taken = enemy_action()
+    let player_defeated = _state.player_hp <= 0
+    set_result(0, taken, false, 0.0, false, player_defeated)
+    _result.message2 = if _result.dodged { "\{_state.enemy_name} 的攻击未命中！"
+    } else if player_defeated { "\{_state.enemy_name} 造成 \{taken} 点伤害！\{_state.owned[_state.active].name} 倒下了…"
+    } else { "\{_state.enemy_name} 造成 \{taken} 点伤害。" }
+  }
+  dec_cooldown()
+  return true
+}
+
+///|
+pub fn use_herb_full_on(idx : Int) -> Bool {
+  if idx < 0 || idx >= _state.owned.length() { return false }
+  if _inventory.herb_full <= 0 { return false }
+  let pet = _state.owned[idx]
+  if pet.cur_hp <= 0 { return false }
+  if pet.cur_hp >= pet.hp { return false }
+  _result.message1 = ""
+  _result.message2 = ""
+  _result.dodged = false
+  _inventory.herb_full = _inventory.herb_full - 1
+  let heal = pet.hp - pet.cur_hp
+  pet.cur_hp = pet.hp
+  if idx == _state.active { _state.player_hp = pet.cur_hp }
+  _result.message1 = "使用了全恢复草，\{pet.name} 恢复了 \{heal} 点 HP。"
+  if _state.enemy_hp > 0 {
+    let taken = enemy_action()
+    let player_defeated = _state.player_hp <= 0
+    set_result(0, taken, false, 0.0, false, player_defeated)
+    _result.message2 = if _result.dodged { "\{_state.enemy_name} 的攻击未命中！"
+    } else if player_defeated { "\{_state.enemy_name} 造成 \{taken} 点伤害！\{_state.owned[_state.active].name} 倒下了…"
+    } else { "\{_state.enemy_name} 造成 \{taken} 点伤害。" }
+  }
+  dec_cooldown()
+  return true
+}
+
+///|
 pub fn use_herb50() -> Bool {
   if _inventory.herb50 <= 0 {
     return false
