@@ -30,10 +30,11 @@ import { loadGame, saveGame } from "./storage.js";
   const btnAttack = $("btn-attack"), btnSkill = $("btn-skill"), btnRun = $("btn-run");
   const btnItems = $("btn-items");
   const ui = createUI($, battleView, battleLog, btnAttack, btnRun, btnSkill, btnItems);
-  const battleMod = createBattle($, exports, ds, petsMod, ui, pokedexMod, itemsMod);
 
-  // Items
+  // Items (needed by battle)
   const itemsMod = createItems($, exports, ds, petsMod, syncFromMoonBit);
+
+  const battleMod = createBattle($, exports, ds, petsMod, ui, pokedexMod, itemsMod);
 
   // Map
   const mapMod = createMap($, exports, ds, battleMod, ui, pokedexMod);
