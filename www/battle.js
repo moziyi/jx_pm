@@ -126,24 +126,26 @@ export function createBattle($, exports, ds, petsMod, ui, pokedexMod) {
     function finalize() {
       const won = exports.get_last_enemy_defeated(), lost = exports.get_last_player_defeated(), caught = exports.get_last_catch_success();
       // 修复 "未知" 名字 → 用 JS 侧正确名字替换
-      function fixName(m) { const a = pets[exports.get_active()]; return a ? m.replace("未知", a.n) : m; }
+    function fixName(m) { const a = getPets()[exports.get_active()]; return a ? m.replace("未知", a.n) : m; }
       if (caught || won) {
         if (caught) { syncFromMoonBit(); pokedex.markCaught(ds(exports.get_enemy_name())); ui.playCatchFlash(); ui.spawnParticles($("enemy-avatar"), "#ffd700", 10); }
         if (won) { ui.playDefeatAnim($("enemy-avatar")); }
+        const pNow = getPets(), sNow = getStored();
         const max = exports.get_max_pets ? exports.get_max_pets() : 5;
         const maxStored = exports.get_max_stored ? exports.get_max_stored() : 10;
-        if (pets.length > max) {
-          if (storedPets.length < maxStored) { exports.store_pet(pets.length - 1); syncFromMoonBit(); ui.setLog(fixName(msg1) + (msg2 ? " " + msg2 : "") + ` 队伍已满，新宠物已自动寄存。`); }
-          else { petsMod.showReleasePicker(ctx); return; }
+        if (pNow.length > max) {
+          if (sNow.length < maxStored) { exports.store_pet(pNow.length - 1); syncFromMoonBit(); ui.setLog(fixName(msg1) + (msg2 ? " " + msg2 : "") + ` 队伍已满，新宠物已自动寄存。`); }
+          else { const pFresh = getPets(); petsMod.showReleasePicker(ctx); return; }
         }
         setTimeout(() => exitBattle(ctx), 1500);
         return;
       }
       if (lost) {
         syncFromMoonBit();
+        const pNow = getPets();
         // 标记出战宠物战败
         const deadIdx = exports.get_active();
-        if (pets[deadIdx]) pets[deadIdx].cur_hp = 0;
+        if (pNow[deadIdx]) pNow[deadIdx].cur_hp = 0;
         // 不清除，让玩家自行选择
         if (exports.all_fainted()) { ui.setLog(`所有宠物都无法出战了…逃离了战斗。`); setTimeout(() => exitBattle(ctx), 1800); return; }
         // 提示玩家选择切换或逃跑
