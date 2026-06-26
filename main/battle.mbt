@@ -400,6 +400,7 @@ pub fn switch_pet(idx : Int) -> Bool {
   _state.player_atk = _state.owned[idx].atk
   _result.message1 = "换上了 \{_state.owned[idx].name}。"
   let taken = enemy_action()
+  _state.owned[_state.active].cur_hp = _state.player_hp
   let player_defeated = _state.player_hp <= 0
   set_result(0, taken, false, 0.0, false, player_defeated)
   _result.message2 = if _result.dodged {
