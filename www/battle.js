@@ -140,17 +140,16 @@ export function createBattle($, exports, ds, petsMod, ui, pokedexMod) {
         return;
       }
       if (lost) {
-        syncFromMoonBit(); exports.auto_switch_active(); syncFromMoonBit();
-        const newPet = pets[exports.get_active()];
+        syncFromMoonBit();
+        // 标记出战宠物战败
+        const deadIdx = exports.get_active();
+        if (pets[deadIdx]) pets[deadIdx].cur_hp = 0;
+        // 不清除，让玩家自行选择
         if (exports.all_fainted()) { ui.setLog(`所有宠物都无法出战了…逃离了战斗。`); setTimeout(() => exitBattle(ctx), 1800); return; }
-        if (exports.has_other_pet()) {
-          ui.setLog(`自动换上了 ${newPet.e} ${newPet.n}！请选择行动。`);
-          [btnAttack, btnSkill, btnUseHerb, btnUseRevive, btnUseHerb50, btnUseHerbHalf, btnUseHerbFull, btnUseReviveFull, btnUseCharm, btnUseGreatCharm].forEach((b) => { if (b) b.disabled = true; });
-          btnRun.disabled = false; petsMod.renderSwitchPanel(petSwitchPanel, ctx); return;
-        }
-        // 自动切换成功，继续战斗
-        ui.setLog(`自动换上了 ${newPet.e} ${newPet.n}！`);
-        syncBattleUI(ctx);
+        // 提示玩家选择切换或逃跑
+        ui.setLog(`${pets[deadIdx]?.n || "宠物"} 倒下了！请切换宠物或逃跑。`);
+        [btnAttack, btnSkill, btnUseHerb, btnUseRevive, btnUseHerb50, btnUseHerbHalf, btnUseHerbFull, btnUseReviveFull, btnUseCharm, btnUseGreatCharm].forEach((b) => { if (b) b.disabled = true; });
+        btnRun.disabled = false; petsMod.renderSwitchPanel(petSwitchPanel, ctx); return;
       }
       ui.setButtons(true, exports);
     }

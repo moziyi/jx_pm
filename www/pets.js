@@ -172,14 +172,22 @@ export function createPets($, exports, ds) {
       b.addEventListener("click", () => {
         const idx = parseInt(b.dataset.idx);
         if (exports.switch_pet(idx)) {
-          const taken = exports.get_last_damage_taken();
-          ctx.ui.setLog(`换上了 ${pets[idx].e} ${pets[idx].n}！受到 ${taken} 点反击。`);
-          ctx.syncBattleUI(); ctx.syncFromMoonBit(); renderSwitchPanel(panel, ctx); ctx.ui.setButtons(true, exports);
-          if (exports.get_last_player_defeated()) {
-            setTimeout(() => { exports.recover_after_defeat(); ctx.syncBattleUI(); ctx.exitBattle(); }, 1600);
-          }
+          const msg1 = ds(exports.get_last_message());
+          const msg2 = ds(exports.get_last_message2 ? exports.get_last_message2() : "");
+          ctx.ui.setLog(msg1);
+          ctx.syncBattleUI(); ctx.syncFromMoonBit();
+          if (msg2 !== "") {
+            setTimeout(() => { ctx.ui.setLog(msg2); ctx.syncBattleUI(); afterSwitch(); }, 700);
+          } else { afterSwitch(); }
         }
       });
+      function afterSwitch() {
+        if (exports.get_last_player_defeated()) {
+          setTimeout(() => { exports.recover_after_defeat(); ctx.syncBattleUI(); ctx.exitBattle(); }, 1600);
+          return;
+        }
+        renderSwitchPanel(panel, ctx); ctx.ui.setButtons(true, exports);
+      }
     });
   }
 
