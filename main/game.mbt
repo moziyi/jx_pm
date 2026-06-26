@@ -746,7 +746,12 @@ pub fn get_enemy_agi() -> Int {
 
 ///|
 pub fn get_last_message() -> String {
-  _result.message
+  _result.message1
+}
+
+///|
+pub fn get_last_message2() -> String {
+  _result.message2
 }
 
 ///|

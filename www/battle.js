@@ -36,60 +36,92 @@ export function createBattle($, exports, ds, petsMod, ui, pokedexMod) {
     petsMod.renderSwitchPanel(petSwitchPanel, ctx);
   }
 
+  function stagedItemResult(ctx, healVal) {
+    const msg1 = ds(exports.get_last_message());
+    const msg2 = ds(exports.get_last_message2 ? exports.get_last_message2() : "");
+    syncBattleUI(ctx); ctx.syncFromMoonBit();
+    ui.setLog(msg1);
+    if (healVal) ui.showDamageFloat($("player-avatar"), healVal, true);
+    if (msg2 !== "") {
+      setTimeout(() => { ui.setLog(msg2); syncBattleUI(ctx); setTimeout(() => ui.setButtons(true, exports), 700); }, 700);
+    } else {
+      setTimeout(() => ui.setButtons(true, exports), 700);
+    }
+  }
+
   function handleResult(ctx) {
     const pets = getPets(), storedPets = getStored();
     const { syncFromMoonBit, pokedex, ui } = ctx;
+    const msg1 = ds(exports.get_last_message());
+    const msg2 = ds(exports.get_last_message2 ? exports.get_last_message2() : "");
     const dealt = exports.get_last_damage_dealt();
     const taken = exports.get_last_damage_taken();
-    const msgText = ds(exports.get_last_message());
-    const isCrit = msgText.includes("暴击");
-    const isDodge = exports.get_last_dodged ? exports.get_last_dodged() : msgText.includes("闪避");
-    const isSkill = msgText.includes("元素技");
-    syncBattleUI(ctx);
+    const isCrit = msg1.includes("暴击") || msg2.includes("暴击");
+    const isDodge = (exports.get_last_dodged ? exports.get_last_dodged() : false) || msg1.includes("未命中") || msg2.includes("未命中");
+    const isSkill = msg1.includes("元素技") || msg2.includes("元素技");
 
-    if (dealt > 0) {
-      ui.playAttackAnim($("player-avatar"), "player-av");
-      if (isSkill) ui.playChargeGlow($("player-avatar"));
-    }
-    if (dealt > 0) {
-      ui.showDamageFloat($("enemy-avatar"), dealt, false, isCrit);
-      ui.playHitAnim($("enemy-avatar"));
-      if (isSkill) ui.spawnParticles($("enemy-avatar"), EL_COLORS[exports.get_player_element()] || "#fff", 6);
-    }
-    if (isCrit) { ui.screenCritFlash(); ui.screenShake(); }
-    else if (dealt > 0 && !isCrit) { ui.screenShake(); }
-
-    if (taken > 0 && !exports.get_last_catch_success()) {
-      if (isDodge) { ui.showMissText($("player-avatar")); ui.playDodgeAnim($("player-avatar")); }
-      else { ui.showDamageFloat($("player-avatar"), taken, false, false); ui.playHitAnim($("player-avatar")); ui.playAttackAnim($("enemy-avatar"), "enemy-av"); }
-    }
-
-    ui.setLog(msgText);
-    const won = exports.get_last_enemy_defeated(), lost = exports.get_last_player_defeated(), caught = exports.get_last_catch_success();
-
-    if (caught || won) {
-      if (caught) { syncFromMoonBit(); pokedex.markCaught(ds(exports.get_enemy_name())); ui.playCatchFlash(); ui.spawnParticles($("enemy-avatar"), "#ffd700", 10); }
-      if (won) { ui.playDefeatAnim($("enemy-avatar")); }
-      const max = exports.get_max_pets ? exports.get_max_pets() : 5;
-      const maxStored = exports.get_max_stored ? exports.get_max_stored() : 10;
-      if (pets.length > max) {
-        if (storedPets.length < maxStored) { exports.store_pet(pets.length - 1); syncFromMoonBit(); ui.setLog(msgText + ` 队伍已满，新宠物已自动寄存。`); }
-        else { petsMod.showReleasePicker(ctx); return; }
+    function showPhase1() {
+      syncBattleUI(ctx);
+      ui.setLog(msg1);
+      if (dealt > 0 && msg1 !== msg2) {
+        ui.playAttackAnim($("player-avatar"), "player-av");
+        if (isSkill) ui.playChargeGlow($("player-avatar"));
+        ui.showDamageFloat($("enemy-avatar"), dealt, false, isCrit && msg1.includes("暴击"));
+        ui.playHitAnim($("enemy-avatar"));
+        if (isSkill) ui.spawnParticles($("enemy-avatar"), EL_COLORS[exports.get_player_element()] || "#fff", 6);
       }
-      setTimeout(() => exitBattle(ctx), 1500);
-      return;
-    }
-    if (lost) {
-      syncFromMoonBit(); exports.auto_switch_active(); syncFromMoonBit();
-      if (exports.all_fainted()) { ui.setLog(`所有宠物都无法出战了…逃离了战斗。`); setTimeout(() => exitBattle(ctx), 1800); return; }
-      if (exports.has_other_pet()) {
-        const dead = pets.findIndex((p) => p.cur_hp <= 0);
-        ui.setLog(`${pets[dead]?.n || "宠物"} 倒下了！请切换宠物或逃跑。`);
-        [btnAttack, btnSkill, btnUseHerb, btnUseRevive, btnUseHerb50, btnUseHerbHalf, btnUseHerbFull, btnUseReviveFull, btnUseCharm, btnUseGreatCharm].forEach((b) => { if (b) b.disabled = true; });
-        btnRun.disabled = false; petsMod.renderSwitchPanel(petSwitchPanel, ctx); return;
+      if (isCrit && msg1.includes("暴击")) { ui.screenCritFlash(); ui.screenShake(); }
+      else if (dealt > 0 && !isCrit && msg1 !== msg2) ui.screenShake();
+      if (taken > 0 && msg2 === "" && msg1.includes("造成")) {
+        // single-phase: enemy went first
+        ui.showDamageFloat($("player-avatar"), taken, false, false);
+        ui.playHitAnim($("player-avatar"));
+        ui.playAttackAnim($("enemy-avatar"), "enemy-av");
       }
     }
-    ui.setButtons(true, exports);
+
+    function showPhase2() {
+      if (msg2 === "") { finalize(); return; }
+      ui.setLog(msg2);
+      syncBattleUI(ctx);
+      if (taken > 0) {
+        if (isDodge && msg2.includes("未命中")) { ui.showMissText($("player-avatar")); ui.playDodgeAnim($("player-avatar")); }
+        else { ui.showDamageFloat($("player-avatar"), taken, false, false); ui.playHitAnim($("player-avatar")); ui.playAttackAnim($("enemy-avatar"), "enemy-av"); }
+      }
+      if (isCrit && msg2.includes("暴击")) { ui.screenCritFlash(); ui.screenShake(); }
+      setTimeout(finalize, 700);
+    }
+
+    function finalize() {
+      const won = exports.get_last_enemy_defeated(), lost = exports.get_last_player_defeated(), caught = exports.get_last_catch_success();
+      if (caught || won) {
+        if (caught) { syncFromMoonBit(); pokedex.markCaught(ds(exports.get_enemy_name())); ui.playCatchFlash(); ui.spawnParticles($("enemy-avatar"), "#ffd700", 10); }
+        if (won) { ui.playDefeatAnim($("enemy-avatar")); }
+        const max = exports.get_max_pets ? exports.get_max_pets() : 5;
+        const maxStored = exports.get_max_stored ? exports.get_max_stored() : 10;
+        if (pets.length > max) {
+          if (storedPets.length < maxStored) { exports.store_pet(pets.length - 1); syncFromMoonBit(); ui.setLog(msg1 + (msg2 ? " " + msg2 : "") + ` 队伍已满，新宠物已自动寄存。`); }
+          else { petsMod.showReleasePicker(ctx); return; }
+        }
+        setTimeout(() => exitBattle(ctx), 1500);
+        return;
+      }
+      if (lost) {
+        syncFromMoonBit(); exports.auto_switch_active(); syncFromMoonBit();
+        if (exports.all_fainted()) { ui.setLog(`所有宠物都无法出战了…逃离了战斗。`); setTimeout(() => exitBattle(ctx), 1800); return; }
+        if (exports.has_other_pet()) {
+          const dead = pets.findIndex((p) => p.cur_hp <= 0);
+          ui.setLog(`${pets[dead]?.n || "宠物"} 倒下了！请切换宠物或逃跑。`);
+          [btnAttack, btnSkill, btnUseHerb, btnUseRevive, btnUseHerb50, btnUseHerbHalf, btnUseHerbFull, btnUseReviveFull, btnUseCharm, btnUseGreatCharm].forEach((b) => { if (b) b.disabled = true; });
+          btnRun.disabled = false; petsMod.renderSwitchPanel(petSwitchPanel, ctx); return;
+        }
+      }
+      ui.setButtons(true, exports);
+    }
+
+    showPhase1();
+    if (msg2 !== "") setTimeout(showPhase2, 700);
+    else setTimeout(finalize, 700);
   }
 
   function exitBattle(ctx) {
@@ -113,17 +145,17 @@ export function createBattle($, exports, ds, petsMod, ui, pokedexMod) {
       if (wasDead) { exports.auto_switch_active(); ctx.syncFromMoonBit(); }
       ui.setLog(ds(exports.get_last_message())); setTimeout(() => exitBattle(ctx), 900);
     });
-    btnUseHerb?.addEventListener("click", () => { ui.setButtons(false, exports); if (exports.use_herb()) { ui.setLog(ds(exports.get_last_message())); syncBattleUI(ctx); ctx.syncFromMoonBit(); ui.showDamageFloat($("player-avatar"), 20, true); } ui.setButtons(true, exports); });
+    btnUseHerb?.addEventListener("click", () => { ui.setButtons(false, exports); if (exports.use_herb()) { stagedItemResult(ctx, 20); } else ui.setButtons(true, exports); });
     btnUseRevive?.addEventListener("click", () => {
       const dead = getPets().findIndex((p) => p.cur_hp <= 0); if (dead < 0) { alert("没有需要复苏的宠物"); return; }
-      ui.setButtons(false, exports); if (exports.use_revive(dead)) { ui.setLog(ds(exports.get_last_message())); syncBattleUI(ctx); ctx.syncFromMoonBit(); } ui.setButtons(true, exports);
+      ui.setButtons(false, exports); if (exports.use_revive(dead)) { stagedItemResult(ctx); } else ui.setButtons(true, exports);
     });
-    btnUseHerb50?.addEventListener("click", () => { ui.setButtons(false, exports); if (exports.use_herb50()) { ui.setLog(ds(exports.get_last_message())); syncBattleUI(ctx); ctx.syncFromMoonBit(); ui.showDamageFloat($("player-avatar"), 50, true); } ui.setButtons(true, exports); });
-    btnUseHerbHalf?.addEventListener("click", () => { ui.setButtons(false, exports); if (exports.use_herb_half()) { ui.setLog(ds(exports.get_last_message())); syncBattleUI(ctx); ctx.syncFromMoonBit(); ui.showDamageFloat($("player-avatar"), 25, true); } ui.setButtons(true, exports); });
-    btnUseHerbFull?.addEventListener("click", () => { ui.setButtons(false, exports); if (exports.use_herb_full()) { ui.setLog(ds(exports.get_last_message())); syncBattleUI(ctx); ctx.syncFromMoonBit(); ui.showDamageFloat($("player-avatar"), 999, true); } ui.setButtons(true, exports); });
+    btnUseHerb50?.addEventListener("click", () => { ui.setButtons(false, exports); if (exports.use_herb50()) { stagedItemResult(ctx, 50); } else ui.setButtons(true, exports); });
+    btnUseHerbHalf?.addEventListener("click", () => { ui.setButtons(false, exports); if (exports.use_herb_half()) { stagedItemResult(ctx, 25); } else ui.setButtons(true, exports); });
+    btnUseHerbFull?.addEventListener("click", () => { ui.setButtons(false, exports); if (exports.use_herb_full()) { stagedItemResult(ctx, 999); } else ui.setButtons(true, exports); });
     btnUseReviveFull?.addEventListener("click", () => {
       const dead = getPets().findIndex((p) => p.cur_hp <= 0); if (dead < 0) { alert("没有需要复苏的宠物"); return; }
-      ui.setButtons(false, exports); if (exports.use_revive_full(dead)) { ui.setLog(ds(exports.get_last_message())); syncBattleUI(ctx); ctx.syncFromMoonBit(); } ui.setButtons(true, exports);
+      ui.setButtons(false, exports); if (exports.use_revive_full(dead)) { stagedItemResult(ctx); } else ui.setButtons(true, exports);
     });
     btnUseCharm?.addEventListener("click", () => { ui.setButtons(false, exports); if (exports.use_charm()) { handleResult(ctx); } else { ui.setButtons(true, exports); } });
     btnUseGreatCharm?.addEventListener("click", () => { ui.setButtons(false, exports); if (exports.use_great_charm()) { handleResult(ctx); } else { ui.setButtons(true, exports); } });
