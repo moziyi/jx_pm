@@ -263,9 +263,10 @@ body {
 .switch-pet-btn:disabled { opacity:0.25; cursor:not-allowed; }
 
 /* 道具按钮 */
-.battle-items { display:flex; gap:6px; padding:6px 14px; border-top:0.5px solid var(--border); background:var(--bg-elevated); }
-.map-items { display:flex; gap:6px; margin-top:10px; }
-.item-btn {
+.battle-items, .map-items { display:flex; gap:6px; overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+.battle-items { padding:6px 14px; border-top:0.5px solid var(--border); background:var(--bg-elevated); }
+.map-items { margin-top:10px; }
+.item-btn { flex-shrink:0;
   display:flex; align-items:center; gap:4px; padding:6px 12px;
   border-radius:6px; border:0.5px solid var(--border);
   background:var(--bg-elevated); color:var(--text); font-size:11px;
