@@ -130,3 +130,9 @@ export function createItems($, exports, ds, petsMod, syncFromMoonBit) {
 
   return { openMenu, closeMenu };
 }
+
+// 绑定关闭按钮
+document.getElementById("item-popup-close").onclick = () => {
+  document.getElementById("item-popup").hidden = true;
+  document.getElementById("target-pick").hidden = true;
+};
