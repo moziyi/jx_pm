@@ -47,7 +47,8 @@ priv struct Inventory {
 
 ///|
 priv struct LastResult {
-  mut message : String
+  mut message1 : String
+  mut message2 : String
   mut damage_dealt : Int
   mut damage_taken : Int
   mut catch_success : Bool
@@ -107,7 +108,8 @@ let _state : GameState = {
 
 ///|
 let _result : LastResult = {
-  message: "",
+  message1: "",
+  message2: "",
   damage_dealt: 0,
   damage_taken: 0,
   catch_success: false,
