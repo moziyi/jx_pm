@@ -1,67 +1,130 @@
-// items.js — 道具计数 + 地图道具按钮
+// items.js — 道具菜单：弹窗/tab/目标选择
 
-export function createItems($, exports, syncFromMoonBit) {
+const ITEMS = [
+  { key:'herb', emoji:'🧪', name:'药草', cat:'heal', desc:'回复 20 HP', use:(e)=>e.use_herb() },
+  { key:'herb50', emoji:'💊', name:'强效药草', cat:'heal', desc:'回复 50 HP', use:(e)=>e.use_herb50() },
+  { key:'herb_half', emoji:'🌸', name:'半恢复草', cat:'heal', desc:'回复 50% Max HP', use:(e)=>e.use_herb_half() },
+  { key:'herb_full', emoji:'🌟', name:'全恢复草', cat:'heal', desc:'回复全部 HP', use:(e)=>e.use_herb_full() },
+  { key:'revive', emoji:'🌿', name:'醒神草', cat:'heal', desc:'复苏，回复 50% HP', use:(e,idx)=>e.use_revive(idx), isRevive:true },
+  { key:'revive_full', emoji:'✨', name:'满血醒神草', cat:'heal', desc:'复苏，回复全部 HP', use:(e,idx)=>e.use_revive_full(idx), isRevive:true },
+  { key:'charm', emoji:'🔮', name:'幻兽符', cat:'fight', desc:'捕捉率 +15%', use:(e)=>e.use_charm(), battleOnly:true },
+  { key:'great_charm', emoji:'⭐', name:'高级幻兽符', cat:'fight', desc:'捕捉率 +30%', use:(e)=>e.use_great_charm(), battleOnly:true },
+];
 
-  function updateCounts() {
-    const h = exports.get_herbs(),
-      r = exports.get_revives(),
-      c = exports.get_charms(),
-      gc = exports.get_great_charms ? exports.get_great_charms() : 0,
-      h50 = exports.get_herb50 ? exports.get_herb50() : 0,
-      hh = exports.get_herb_half ? exports.get_herb_half() : 0,
-      hf = exports.get_herb_full ? exports.get_herb_full() : 0,
-      rf = exports.get_revive_full ? exports.get_revive_full() : 0;
-    const set = (id, n) => { const el = $(id); if (el) el.textContent = "x" + n; };
-    set("herb-count", h); set("map-herb-count", h);
-    set("revive-count", r); set("map-revive-count", r);
-    set("herb50-count", h50); set("map-herb50-count", h50);
-    set("herb-half-count", hh); set("map-herb-half-count", hh);
-    set("herb-full-count", hf); set("map-herb-full-count", hf);
-    set("revive-full-count", rf); set("map-revive-full-count", rf);
-    set("charm-count", c); set("great-charm-count", gc);
-    const btnUseHerb = $("btn-herb"),
-      btnUseRevive = $("btn-revive"),
-      btnUseHerb50 = $("btn-herb50"),
-      btnUseHerbHalf = $("btn-herb-half"),
-      btnUseHerbFull = $("btn-herb-full"),
-      btnUseReviveFull = $("btn-revive-full"),
-      btnUseCharm = $("btn-charm");
-    if (btnUseHerb) btnUseHerb.disabled = h <= 0;
-    if (btnUseRevive) btnUseRevive.disabled = r <= 0;
-    if (btnUseHerb50) btnUseHerb50.disabled = h50 <= 0;
-    if (btnUseHerbHalf) btnUseHerbHalf.disabled = hh <= 0;
-    if (btnUseHerbFull) btnUseHerbFull.disabled = hf <= 0;
-    if (btnUseReviveFull) btnUseReviveFull.disabled = rf <= 0;
-    if (btnUseCharm) btnUseCharm.disabled = c <= 0;
+export function createItems($, exports, ds, petsMod, syncFromMoonBit) {
+  let activeTab = 'all';
+  let mode = 'map'; // 'map' | 'battle'
+  let hasUseResult = null; // callback after use
+
+  const popup = $("item-popup");
+  const listEl = $("item-list");
+  const targetPick = $("target-pick");
+  const targetList = $("target-list");
+
+  function updateItemIds() {
+    ITEMS.forEach(i => i.get = exports['get_' + i.key] ? exports['get_' + i.key]() : 0);
   }
 
-  function setupMapButtons(ctx) {
-    const { pets } = ctx;
-    $("map-herb")?.addEventListener("click", () => {
-      if (exports.get_herbs() > 0) { exports.use_herb(); syncFromMoonBit(); }
-    });
-    $("map-revive")?.addEventListener("click", () => {
-      if (exports.get_revives() <= 0) return;
-      const dead = pets.findIndex((p) => p.cur_hp <= 0);
-      if (dead < 0) { alert("没有需要复苏的宠物"); return; }
-      exports.use_revive(dead); syncFromMoonBit();
-    });
-    $("map-herb50")?.addEventListener("click", () => {
-      if (exports.get_herb50 ? exports.get_herb50() > 0 : false) { exports.use_herb50(); syncFromMoonBit(); }
-    });
-    $("map-herb-half")?.addEventListener("click", () => {
-      if (exports.get_herb_half ? exports.get_herb_half() > 0 : false) { exports.use_herb_half(); syncFromMoonBit(); }
-    });
-    $("map-herb-full")?.addEventListener("click", () => {
-      if (exports.get_herb_full ? exports.get_herb_full() > 0 : false) { exports.use_herb_full(); syncFromMoonBit(); }
-    });
-    $("map-revive-full")?.addEventListener("click", () => {
-      if (exports.get_revive_full ? exports.get_revive_full() <= 0 : true) return;
-      const dead = pets.findIndex((p) => p.cur_hp <= 0);
-      if (dead < 0) { alert("没有需要复苏的宠物"); return; }
-      exports.use_revive_full(dead); syncFromMoonBit();
+  function count(key) {
+    return exports['get_' + key] ? exports['get_' + key]() : 0;
+  }
+
+  function openMenu(m, afterUse) {
+    mode = m;
+    hasUseResult = afterUse || null;
+    updateItemIds();
+    popup.hidden = false;
+    targetPick.hidden = true;
+    renderTabs();
+    renderItems();
+  }
+
+  function closeMenu() {
+    popup.hidden = true;
+    targetPick.hidden = true;
+  }
+
+  function renderTabs() {
+    popup.querySelectorAll(".item-tab").forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.tab === activeTab);
+      tab.onclick = () => { activeTab = tab.dataset.tab; renderTabs(); renderItems(); };
     });
   }
 
-  return { updateCounts, setupMapButtons };
+  function renderItems() {
+    const filtered = ITEMS.filter(i => {
+      if (activeTab === 'heal') return i.cat === 'heal';
+      if (activeTab === 'fight') return i.cat === 'fight';
+      return true;
+    });
+    listEl.innerHTML = filtered.map(i => {
+      const c = count(i.key);
+      const disabled = c <= 0 || (i.battleOnly && mode !== 'battle');
+      return `<div class="item-row">
+        <span class="item-row-icon">${i.emoji}</span>
+        <span class="item-row-name">${i.name}<span style="font-size:10px;color:var(--text-dim);margin-left:8px;">${i.desc}</span></span>
+        <span class="item-row-count">x${c}</span>
+        <button class="item-row-use" data-key="${i.key}" ${disabled?'disabled':''}>使用</button>
+      </div>`;
+    }).join('');
+    listEl.querySelectorAll(".item-row-use:not([disabled])").forEach(btn => {
+      btn.onclick = () => {
+        const key = btn.dataset.key;
+        const item = ITEMS.find(i => i.key === key);
+        if (!item || count(key) <= 0) return;
+        if (item.cat === 'heal') showTargetPicker(item);
+        else useBattleItem(item);
+      };
+    });
+  }
+
+  function showTargetPicker(item) {
+    const pets = petsMod.getPets();
+    targetPick.hidden = false;
+    popup.hidden = true;
+    const isRevive = item.isRevive;
+    targetList.innerHTML = pets.map((p, idx) => {
+      const dead = p.cur_hp <= 0;
+      const full = p.cur_hp >= p.hp;
+      const hpPct = Math.max(0, (p.cur_hp / p.hp) * 100);
+      const hpColor = hpPct > 50 ? 'green' : hpPct > 25 ? 'yellow' : 'red';
+      let selectable = true, reason = '';
+      if (isRevive && !dead) { selectable = false; reason = '存活中'; }
+      else if (!isRevive && dead) { selectable = false; reason = '已阵亡'; }
+      else if (!isRevive && full) { selectable = false; reason = 'HP已满'; }
+      return `<div class="target-card${selectable?'':' disabled'}" data-idx="${idx}"${selectable?'':' title="'+reason+'"'}>
+        <span class="target-card-icon">${p.e}</span>
+        <div class="target-card-info">
+          <div><span class="target-card-name">${p.n}</span> <span class="target-card-lv">Lv${p.lv??1}</span> ${dead?'💀':''} ${reason ? '<span style="color:var(--text-dim);font-size:10px;">('+reason+')</span>' : ''}</div>
+          <div class="target-card-hp">
+            <span>${Math.max(0,p.cur_hp)}/${p.hp}</span>
+            <div class="target-card-hp-bar"><div class="target-card-hp-fill ${hpColor}" style="width:${hpPct}%"></div></div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    targetList.querySelectorAll(".target-card:not(.disabled)").forEach(card => {
+      card.onclick = () => {
+        const idx = parseInt(card.dataset.idx);
+        item.use(exports, idx);
+        targetPick.hidden = true;
+        syncFromMoonBit();
+        closeMenu();
+        if (hasUseResult) hasUseResult();
+      };
+    });
+    $("target-cancel").onclick = () => { targetPick.hidden = true; popup.hidden = false; };
+  }
+
+  function useBattleItem(item) {
+    if (item.use(exports)) {
+      closeMenu();
+      syncFromMoonBit();
+      if (hasUseResult) hasUseResult();
+    } else {
+      closeMenu();
+    }
+  }
+
+  return { openMenu, closeMenu };
 }
