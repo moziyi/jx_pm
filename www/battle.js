@@ -3,12 +3,11 @@
 import { SCENES } from "./config.js";
 import { EL_COLORS } from "./ui.js";
 
-export function createBattle($, exports, ds, petsMod, ui, pokedexMod) {
+export function createBattle($, exports, ds, petsMod, ui, pokedexMod, itemsMod) {
 
   const battleView = $("battle-view"), battleLog = $("battle-log"), petSwitchPanel = $("pet-switch");
   const btnAttack = $("btn-attack"), btnSkill = $("btn-skill"), btnRun = $("btn-run");
-  const btnUseHerb = $("btn-herb"), btnUseRevive = $("btn-revive"), btnUseHerb50 = $("btn-herb50"), btnUseHerbHalf = $("btn-herb-half"), btnUseHerbFull = $("btn-herb-full"), btnUseReviveFull = $("btn-revive-full");
-  const btnUseCharm = $("btn-charm"), btnUseGreatCharm = $("btn-great-charm");
+  const btnItems = $("btn-items-battle");
   const mapView = $("map-view");
 
   function getPets() { return petsMod.getPets(); }
@@ -34,26 +33,6 @@ export function createBattle($, exports, ds, petsMod, ui, pokedexMod) {
       const playerStats = $("player-stats"); if (playerStats) playerStats.textContent = "DEF:" + (pets[active].def ?? 0) + " AGI:" + (pets[active].agi ?? 0);
     }
     petsMod.renderSwitchPanel(petSwitchPanel, ctx);
-  }
-
-  function stagedItemResult(ctx, healVal) {
-    function fixName(m) { const a = getPets()[exports.get_active()]; return a ? m.replace("未知", a.n) : m; }
-    const msg1 = fixName(ds(exports.get_last_message()));
-    const msg2 = fixName(ds(exports.get_last_message2 ? exports.get_last_message2() : ""));
-    ctx.syncFromMoonBit();
-    const taken = exports.get_last_damage_taken();
-    const pHp = exports.get_player_hp();
-    // 阶段1：治疗后HP（未受反击）
-    if (msg2 !== "") {
-      ui.setHp("player", pHp + taken, exports.get_player_max_hp());
-    }
-    ui.setLog(msg1);
-    if (healVal) ui.showDamageFloat($("player-avatar"), healVal, true);
-    if (msg2 !== "") {
-      setTimeout(() => { ui.setLog(msg2); ui.setHp("player", pHp, exports.get_player_max_hp()); const e = exports.get_enemy_hp(), em = exports.get_enemy_max_hp(); ui.setHp("enemy", e, em); setTimeout(() => ui.setButtons(true, exports), 700); }, 700);
-    } else {
-      setTimeout(() => ui.setButtons(true, exports), 700);
-    }
   }
 
   function handleResult(ctx) {
@@ -149,8 +128,8 @@ export function createBattle($, exports, ds, petsMod, ui, pokedexMod) {
         // 不清除，让玩家自行选择
         if (exports.all_fainted()) { ui.setLog(`所有宠物都无法出战了…逃离了战斗。`); setTimeout(() => exitBattle(ctx), 1800); return; }
         // 提示玩家选择切换或逃跑
-        ui.setLog(`${pets[deadIdx]?.n || "宠物"} 倒下了！请切换宠物或逃跑。`);
-        [btnAttack, btnSkill, btnUseHerb, btnUseRevive, btnUseHerb50, btnUseHerbHalf, btnUseHerbFull, btnUseReviveFull, btnUseCharm, btnUseGreatCharm].forEach((b) => { if (b) b.disabled = true; });
+        ui.setLog(`${pNow[deadIdx]?.n || "宠物"} 倒下了！请切换宠物或逃跑。`);
+        [btnAttack, btnSkill, btnItems].forEach((b) => { if (b) b.disabled = true; });
         btnRun.disabled = false; petsMod.renderSwitchPanel(petSwitchPanel, ctx); return;
       }
       ui.setButtons(true, exports);
@@ -170,7 +149,7 @@ export function createBattle($, exports, ds, petsMod, ui, pokedexMod) {
         const tag = document.querySelector(`.captured-tag[data-idx="${exports.get_active()}"]:not([data-stored="1"])`); if (tag) ui.playLevelGlow(tag); }
     }
     petSwitchPanel.hidden = true; const bi = $("battle-items"); if (bi) bi.hidden = true;
-    $("map-items").hidden = false; battleView.hidden = true; mapView.hidden = false;
+    $("btn-items").hidden = false; battleView.hidden = true; mapView.hidden = false;
     ctx.trySpawnSpecial();
   }
 
@@ -182,20 +161,7 @@ export function createBattle($, exports, ds, petsMod, ui, pokedexMod) {
       if (wasDead) { exports.auto_switch_active(); ctx.syncFromMoonBit(); }
       ui.setLog(ds(exports.get_last_message())); setTimeout(() => exitBattle(ctx), 900);
     });
-    btnUseHerb?.addEventListener("click", () => { ui.setButtons(false, exports); if (exports.use_herb()) { stagedItemResult(ctx, 20); } else ui.setButtons(true, exports); });
-    btnUseRevive?.addEventListener("click", () => {
-      const dead = getPets().findIndex((p) => p.cur_hp <= 0); if (dead < 0) { alert("没有需要复苏的宠物"); return; }
-      ui.setButtons(false, exports); if (exports.use_revive(dead)) { stagedItemResult(ctx); } else ui.setButtons(true, exports);
-    });
-    btnUseHerb50?.addEventListener("click", () => { ui.setButtons(false, exports); if (exports.use_herb50()) { stagedItemResult(ctx, 50); } else ui.setButtons(true, exports); });
-    btnUseHerbHalf?.addEventListener("click", () => { ui.setButtons(false, exports); if (exports.use_herb_half()) { stagedItemResult(ctx, 25); } else ui.setButtons(true, exports); });
-    btnUseHerbFull?.addEventListener("click", () => { ui.setButtons(false, exports); if (exports.use_herb_full()) { stagedItemResult(ctx, 999); } else ui.setButtons(true, exports); });
-    btnUseReviveFull?.addEventListener("click", () => {
-      const dead = getPets().findIndex((p) => p.cur_hp <= 0); if (dead < 0) { alert("没有需要复苏的宠物"); return; }
-      ui.setButtons(false, exports); if (exports.use_revive_full(dead)) { stagedItemResult(ctx); } else ui.setButtons(true, exports);
-    });
-    btnUseCharm?.addEventListener("click", () => { ui.setButtons(false, exports); if (exports.use_charm()) { handleResult(ctx); } else { ui.setButtons(true, exports); } });
-    btnUseGreatCharm?.addEventListener("click", () => { ui.setButtons(false, exports); if (exports.use_great_charm()) { handleResult(ctx); } else { ui.setButtons(true, exports); } });
+    btnItems?.addEventListener("click", () => { itemsMod.openMenu('battle', () => handleResult(ctx)); });
   }
 
   function enterBattle(ctx, sceneKey) {
@@ -206,8 +172,8 @@ export function createBattle($, exports, ds, petsMod, ui, pokedexMod) {
     ui.setLog(`遭遇了 ${ds(exports.get_enemy_name())}！选择你的行动。`);
     ui.setButtons(true, exports);
     petSwitchPanel.hidden = false; const bi = $("battle-items"); if (bi) bi.hidden = false;
-    $("map-items").hidden = true; mapView.hidden = true; battleView.hidden = false;
+    $("btn-items").hidden = true; mapView.hidden = true; battleView.hidden = false;
   }
 
-  return { syncBattleUI, handleResult, exitBattle, setupButtons, enterBattle, petSwitchPanel, btnAttack, btnRun, btnSkill, btnUseHerb, btnUseRevive, btnUseHerb50, btnUseHerbHalf, btnUseHerbFull, btnUseReviveFull, btnUseCharm, btnUseGreatCharm };
+  return { syncBattleUI, handleResult, exitBattle, setupButtons, enterBattle, petSwitchPanel, btnAttack, btnRun, btnSkill, btnItems };
 }

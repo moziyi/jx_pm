@@ -28,13 +28,12 @@ import { loadGame, saveGame } from "./storage.js";
   const petsMod = createPets($, exports, ds);
   const battleView = $("battle-view"), battleLog = $("battle-log");
   const btnAttack = $("btn-attack"), btnSkill = $("btn-skill"), btnRun = $("btn-run");
-  const btnUseHerb = $("btn-herb"), btnUseRevive = $("btn-revive"), btnUseHerb50 = $("btn-herb50"), btnUseHerbHalf = $("btn-herb-half"), btnUseHerbFull = $("btn-herb-full"), btnUseReviveFull = $("btn-revive-full");
-  const btnUseCharm = $("btn-charm"), btnUseGreatCharm = $("btn-great-charm");
-  const ui = createUI($, battleView, battleLog, btnAttack, btnRun, btnSkill, btnUseHerb, btnUseRevive, btnUseHerb50, btnUseHerbHalf, btnUseHerbFull, btnUseReviveFull, btnUseCharm, btnUseGreatCharm);
-  const battleMod = createBattle($, exports, ds, petsMod, ui, pokedexMod);
+  const btnItems = $("btn-items");
+  const ui = createUI($, battleView, battleLog, btnAttack, btnRun, btnSkill, btnItems);
+  const battleMod = createBattle($, exports, ds, petsMod, ui, pokedexMod, itemsMod);
 
   // Items
-  const itemsMod = createItems($, exports, syncFromMoonBit);
+  const itemsMod = createItems($, exports, ds, petsMod, syncFromMoonBit);
 
   // Map
   const mapMod = createMap($, exports, ds, battleMod, ui, pokedexMod);
@@ -75,7 +74,6 @@ import { loadGame, saveGame } from "./storage.js";
       newStored.push(p);
     }
     petsMod.setPets(newPets, newStored);
-    itemsMod.updateCounts();
     saveGame(newPets, newStored, exports);
     petsMod.renderPetList(ctx);
   }
@@ -83,7 +81,7 @@ import { loadGame, saveGame } from "./storage.js";
   // Setup
   battleMod.setupButtons(ctx);
   mapMod.setupMarkers(ctx);
-  itemsMod.setupMapButtons(ctx);
+  $("btn-items")?.addEventListener("click", () => itemsMod.openMenu('map'));
 
   // Init: load save or new game
   const saved = loadGame();
@@ -112,8 +110,7 @@ import { loadGame, saveGame } from "./storage.js";
   $("btn-pokedex")?.addEventListener("click", () => { const panel = $("pokedex-panel"); if (panel) { panel.hidden = !panel.hidden; if (!panel.hidden) pokedexMod.render($); } });
   petsMod.renderPetList(ctx);
   battleMod.syncBattleUI(ctx);
-  itemsMod.updateCounts();
   pokedexMod.render($);
-  $("map-items").hidden = false;
+  $("btn-items").hidden = false;
   console.log("✅ 幻兽森林已就绪");
 })();

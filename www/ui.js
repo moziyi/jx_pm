@@ -2,7 +2,7 @@
 
 export const EL_COLORS = ['#d4af37', '#4caf50', '#b8956a', '#4da6d9', '#e85d3a'];
 
-export function createUI($, battleView, battleLog, btnAttack, btnRun, btnSkill, btnUseHerb, btnUseRevive, btnUseHerb50, btnUseHerbHalf, btnUseHerbFull, btnUseReviveFull, btnUseCharm, btnUseGreatCharm) {
+export function createUI($, battleView, battleLog, btnAttack, btnRun, btnSkill, btnItems) {
 
   function $(id) { return document.getElementById(id); } // re-bind locally
 
@@ -128,7 +128,7 @@ export function createUI($, battleView, battleLog, btnAttack, btnRun, btnSkill, 
   }
 
   function setButtons(on, exports) {
-    [btnAttack, btnRun, btnUseHerb, btnUseRevive, btnUseHerb50, btnUseHerbHalf, btnUseHerbFull, btnUseReviveFull, btnUseCharm, btnUseGreatCharm].forEach((b) => {
+    [btnAttack, btnRun, btnItems].forEach((b) => {
       if (b) b.disabled = !on;
     });
     if (btnSkill) {

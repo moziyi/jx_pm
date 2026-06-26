@@ -62,7 +62,7 @@ export function createMap($, exports, ds, battleMod, ui, pokedexMod) {
     } else if (etype === 2) {
       const keys = Object.keys(SCENES); const locId = SCENES[keys[Math.floor(Math.random()*keys.length)]].id;
       exports.start_battle(locId); battleMod.syncBattleUI(ctx); ui.setButtons(true, exports);
-      battleMod.petSwitchPanel.hidden = false; $("battle-items").hidden = false; $("map-items").hidden = true;
+      battleMod.petSwitchPanel.hidden = false; $("battle-items").hidden = false; $("btn-items").hidden = true;
       $("map-view").hidden = true; $("battle-view").hidden = false; ui.setLog("⭐ 遭遇了稀有敌人！属性大幅提升…");
     } else if (etype === 3) {
       exports.hurt_active(15); const r = Math.floor(Math.random()*2);
