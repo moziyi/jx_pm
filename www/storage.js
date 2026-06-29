@@ -1,3 +1,4 @@
+// @ts-check
 // storage.js — 存档读写
 
 const SAVE_KEY = 'phantom_forest_v8'
@@ -13,6 +14,31 @@ export function getUUID() {
   let id = localStorage.getItem('phantom_uuid')
   if (!id) { id = crypto.randomUUID(); localStorage.setItem('phantom_uuid', id) }
   return id
+}
+
+/// 解析 export_save() 输出（无 UUID，无 localStorage）
+export function parseWasmState(raw) {
+  if (!raw) return null
+  const lines = raw.split('\n')
+  const ver = parseInt(lines[0])
+  if (ver < 9) return null
+  // format: ver / checksum / active / 8 inv / owned_count / pets / stored_count / stored
+  const active = parseInt(lines[2]) || 0
+  const inv = {
+    herbs: parseInt(lines[3])||0, revives: parseInt(lines[4])||0,
+    charms: parseInt(lines[5])||0, great_charms: parseInt(lines[6])||0,
+    herb50: parseInt(lines[7])||0, herb_half: parseInt(lines[8])||0,
+    herb_full: parseInt(lines[9])||0, revive_full: parseInt(lines[10])||0,
+  }
+  const ownedCount = parseInt(lines[11]) || 0
+  const petFields = 11
+  let p = 12
+  const pets = []
+  for (let j = 0; j < ownedCount; j++) { pets.push(parsePet(lines, p, ver)); p += petFields }
+  const storedCount = parseInt(lines[p]) || 0; p++
+  const stored = []
+  for (let j = 0; j < storedCount; j++) { stored.push(parsePet(lines, p, ver)); p += petFields }
+  return { active, inv, pets, stored }
 }
 
 function parsePet(lines, i, ver) {

@@ -1,3 +1,4 @@
+// @ts-check
 // wasm.js — WASM 加载 + 字符串解码
 
 export async function loadWasm(url) {

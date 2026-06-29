@@ -1,3 +1,4 @@
+// @ts-check
 // pets.js — 宠物列表/菜单/拖拽/初始选择
 
 import { ELEMENTS, STARTERS } from "./config.js";
@@ -7,7 +8,10 @@ export function createPets($, exports, ds) {
   let pets = [], storedPets = [], storedPage = 0;
   let dragSrcIdx = -1, dragSrcStored = -1, wasDragging = false;
 
-  function setPets(p, s) { pets = p; storedPets = s; }
+  function setPets(p, s) {
+    pets.length = 0; pets.push(...p);
+    storedPets.length = 0; storedPets.push(...s);
+  }
   function getPets() { return pets; }
   function getStoredPets() { return storedPets; }
 

@@ -1,3 +1,4 @@
+// @ts-check
 // battle.js — 战斗：按钮/回合处理/切换/释放/退场
 
 import { SCENES } from "./config.js";

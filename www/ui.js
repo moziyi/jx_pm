@@ -1,13 +1,19 @@
+// @ts-check
 // ui.js — UI 工具：动画/弹窗/HP条/日志/按钮状态
+
+import { createSFX } from "./sfx.js";
 
 export const EL_COLORS = ['#d4af37', '#4caf50', '#b8956a', '#4da6d9', '#e85d3a'];
 
 export function createUI($, battleView, battleLog, btnAttack, btnRun, btnSkill, btnItems) {
 
+  const sfx = createSFX();
+
   function $(id) { return document.getElementById(id); } // re-bind locally
 
   function showDamageFloat(el, value, isHeal, crit) {
     if (!el) return;
+    if (isHeal) sfx.playHeal();
     const span = document.createElement("span");
     span.className = "dmg-float" + (isHeal ? " heal" : "") + (crit ? " crit" : "");
     span.textContent = (crit ? "💥" : "") + (isHeal ? "+" : "") + value;
@@ -26,6 +32,7 @@ export function createUI($, battleView, battleLog, btnAttack, btnRun, btnSkill, 
 
   function playAttackAnim(el, cls) {
     if (!el) return;
+    sfx.playAttack();
     el.classList.add("attacking", cls);
     setTimeout(() => { el.classList.remove("attacking", cls); }, 250);
   }
@@ -38,24 +45,28 @@ export function createUI($, battleView, battleLog, btnAttack, btnRun, btnSkill, 
 
   function playDodgeAnim(el) {
     if (!el) return;
+    sfx.playDodge();
     el.classList.add("dodge-pop");
     setTimeout(() => el.classList.remove("dodge-pop"), 400);
   }
 
   function playDefeatAnim(el) {
     if (!el) return;
+    sfx.playDefeat();
     el.classList.add("defeat-fade");
     setTimeout(() => el.classList.remove("defeat-fade"), 500);
   }
 
   function screenCritFlash() {
     if (!battleView) return;
+    sfx.playCrit();
     battleView.classList.add("crit-flash");
     setTimeout(() => battleView.classList.remove("crit-flash"), 500);
   }
 
   function playLevelGlow(el) {
     if (!el) return;
+    sfx.playLevelUp();
     const pet = el.closest ? el : document.querySelector(el);
     if (!pet) return;
     pet.classList.add("level-glow");
@@ -98,6 +109,7 @@ export function createUI($, battleView, battleLog, btnAttack, btnRun, btnSkill, 
   function playCatchFlash() {
     const enemy = document.getElementById("enemy-avatar");
     if (!enemy) return;
+    sfx.playCatch();
     enemy.classList.add("catch-flash");
     setTimeout(() => enemy.classList.remove("catch-flash"), 600);
   }

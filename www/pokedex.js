@@ -1,3 +1,4 @@
+// @ts-check
 // pokedex.js — 图鉴：状态/标记/渲染
 
 import { ELEMENTS, SCENES, POKEDEX } from "./config.js";

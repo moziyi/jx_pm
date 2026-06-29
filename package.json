@@ -4,9 +4,12 @@
   "scripts": {
     "dev": "vite",
     "build": "moon build --target wasm --release && cp _build/wasm/release/build/main/main.wasm www/main.wasm && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "vite": "^6"
+    "vite": "^6",
+    "vitest": "^4.1.9"
   }
 }

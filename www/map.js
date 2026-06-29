@@ -1,3 +1,4 @@
+// @ts-check
 // map.js — 地图事件/特殊点位
 
 import { EVENTS, SCENES, SPECIAL_EVENTS, weightedPick } from "./config.js";

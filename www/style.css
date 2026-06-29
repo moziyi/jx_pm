@@ -545,3 +545,25 @@ body {
   100% { filter: brightness(1); }
 }
 .catch-flash { animation: catch-flash 0.6s ease; }
+
+/* ═══════════════════════════════════════════════════════════════
+   移动端适配
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 480px) {
+  body { padding: 8px; }
+  #app { max-width: 100%; }
+  .battle-actions { grid-template-columns: 1fr 1fr; gap: 6px; padding: 10px; }
+  .action-btn { padding: 8px; font-size: 12px; }
+  .marker { min-width: 44px; min-height: 44px; }
+  .marker-label { font-size: 11px; }
+  .captured-tag { min-height: 48px; }
+  .starter-card { width: 44%; min-height: 64px; }
+  .item-popup, .target-pick { max-width: 96vw; padding: 10px; }
+  .item-list, .target-list { max-height: 250px; }
+  .entity { gap: 4px; }
+  .avatar { font-size: 30px; }
+  .hp-wrap { font-size: 10px; }
+  .pet-switch { gap: 4px; }
+  .switch-pet-btn { padding: 6px 8px; font-size: 11px; }
+}

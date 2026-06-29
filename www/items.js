@@ -1,3 +1,4 @@
+// @ts-check
 // items.js — 道具菜单：弹窗/tab/目标选择
 
 const ITEMS = [

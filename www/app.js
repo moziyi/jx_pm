@@ -1,3 +1,4 @@
+// @ts-check
 // app.js — 幻兽森林 应用入口
 
 import { loadWasm } from "./wasm.js";
@@ -7,7 +8,7 @@ import { createPets } from "./pets.js";
 import { createBattle } from "./battle.js";
 import { createItems } from "./items.js";
 import { createMap } from "./map.js";
-import { loadGame, saveGame } from "./storage.js";
+import { loadGame, saveGame, parseWasmState } from "./storage.js";
 
 (async () => {
   const $ = (id) => document.getElementById(id);
@@ -52,30 +53,24 @@ import { loadGame, saveGame } from "./storage.js";
     saveGame: (pets, stored) => saveGame(pets, stored, exports),
   };
 
-  // syncFromMoonBit
+  // syncFromMoonBit — 用 export_save 一次拿全量数据
   function syncFromMoonBit() {
+    const raw = ds(exports.export_save());
+    const state = parseWasmState(raw);
+    if (!state) return;
+    // 保留 JS 侧名字/emoji（WASM 侧可能是"未知"）
     const petById = {}; for (const p of petsMod.getPets()) petById[p.id] = p;
     const storedById = {}; for (const p of petsMod.getStoredPets()) storedById[p.id] = p;
-    const count = exports.get_owned_count(); const newPets = [];
-    for (let i = 0; i < count; i++) {
-      const id = exports.get_owned_id(i); let p = petById[id] || storedById[id];
-      if (p) { delete petById[id]; delete storedById[id]; }
-      else { p = { id, n: ds(exports.get_owned_name(i)), e: ds(exports.get_owned_emoji(i)) }; }
-      p.hp = exports.get_owned_hp(i); p.atk = exports.get_owned_atk(i); p.def = exports.get_owned_def(i); p.agi = exports.get_owned_agi(i);
-      p.lv = exports.get_owned_lv(i); p.exp = exports.get_owned_exp(i); p.cur_hp = exports.get_owned_cur_hp(i); p.el = exports.get_owned_element(i);
-      newPets.push(p);
+    for (const p of state.pets) {
+      const old = petById[p.id] || storedById[p.id];
+      if (old) { p.n = old.n; p.e = old.e; }
     }
-    const sc = exports.get_stored_count ? exports.get_stored_count() : 0; const newStored = [];
-    for (let i = 0; i < sc; i++) {
-      const id = exports.get_stored_id(i); let p = storedById[id] || petById[id];
-      if (p) { delete storedById[id]; delete petById[id]; }
-      else { p = { id, n: ds(exports.get_stored_name(i)), e: ds(exports.get_stored_emoji(i)) }; }
-      p.hp = exports.get_stored_hp(i); p.atk = exports.get_stored_atk(i); p.def = exports.get_stored_def(i); p.agi = exports.get_stored_agi(i);
-      p.lv = exports.get_stored_lv(i); p.exp = exports.get_stored_exp(i); p.cur_hp = exports.get_stored_cur_hp(i); p.el = exports.get_stored_element(i);
-      newStored.push(p);
+    for (const p of state.stored) {
+      const old = storedById[p.id] || petById[p.id];
+      if (old) { p.n = old.n; p.e = old.e; }
     }
-    petsMod.setPets(newPets, newStored);
-    saveGame(newPets, newStored, exports);
+    petsMod.setPets(state.pets, state.stored);
+    saveGame(state.pets, state.stored, exports);
     petsMod.renderPetList(ctx);
   }
 

@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "checkJs": true,
+    "strict": false,
+    "noEmit": true,
+    "allowJs": true,
+    "skipLibCheck": true,
+    "lib": ["ESNext", "DOM", "DOM.Iterable"]
+  },
+  "include": ["www/**/*.js", "www/**/*.d.ts"],
+  "exclude": ["www/dist", "node_modules"]
+}
